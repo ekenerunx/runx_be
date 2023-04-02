@@ -1,0 +1,12 @@
+export class SendNotification {
+  name: string;
+  type: 'NEW_INIVITATTION';
+}
+
+export enum NotificationType {
+  'INIVITATION' = 'INIVITATION',
+  'WITHDRAWAL' = 'WITHDRAWAL',
+  'ACCOUNT_CREDIT' = 'ACCOUNT_CREDIT',
+  'SERVICE_REQUEST_CREDIT' = 'SERVICE_REQUEST_CREDIT',
+  'SERVICE_REQUEST_PROPOSAL' = 'SERVICE_REQUEST_PROPOSAL',
+}

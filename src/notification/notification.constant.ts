@@ -1,0 +1,25 @@
+export const NOTIFICATION_QUEUE = 'NOTIFICATION_QUEUE';
+
+export const NOTIFICATION_LIST_FIELDS = [
+  'not.id',
+  'not.created_at',
+  'not.is_read',
+  'not.message',
+  'not.subject',
+  'not.type',
+  'not.credit_amount',
+  'not.withdrawal_amount',
+  'not.proposal_amount',
+  'not.invitation_amount',
+  'sr.id',
+  'sr.description',
+  'sp.id',
+  'sp.last_name',
+  'sp.first_name',
+  'owner.id',
+  'owner.last_name',
+  'owner.first_name',
+  'client.id',
+  'client.last_name',
+  'client.first_name',
+];
