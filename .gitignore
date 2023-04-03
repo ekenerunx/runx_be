@@ -1,6 +1,6 @@
 # compiled output
-/dist
-/node_modules
+dist
+node_modules
 
 # Logs
 logs
@@ -36,7 +36,15 @@ lerna-debug.log*
 
 # env
 .env
+.env.*
 .env.prod
 .env.local
 .env.staging
 .env.dev
+
+
+# terraform file to ingnore 
+terraform.tfvars
+*.tfstate.*
+*.tfstate
+.terraform
