@@ -46,6 +46,6 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: ./backend/Dockerfile.dev
+          file: ./backend/dockerfile.dev
           push: true
           tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
