@@ -83,7 +83,7 @@ export class ServiceRequestProposal extends SharedEntity {
   job_complete_date: Date;
 
   @Column({ nullable: true })
-  job_complete_note: Date;
+  job_complete_note: string;
 
   @Column({ nullable: true })
   job_complete_file_1: string;

@@ -1,4 +1,4 @@
-import { Notification } from './../entities/notification.entity';
+import { CompleteProposalDto } from './dto/complete-proposal.dto';
 import { SendProposalDto } from './dto/send-proposal.dto';
 import { MessagingService } from './../messaging/messaging.service';
 import { NotificationService } from './../notification/notification.service';
@@ -38,9 +38,10 @@ import { EmailTemplate } from 'src/common/email-template';
 import { NotificationType } from 'src/notification/interface/notification.interface';
 import { AcceptProposalDto } from './dto/accept-proposal.dto';
 import { ResponseMessage } from 'src/common/interface/success-message.interface';
-import { normalizeEnum } from 'src/common/utils';
 import { WalletService } from 'src/wallet/wallet.service';
 import { TransactionType } from 'src/wallet/interfaces/transaction.interface';
+import { getMillisecondsDifference } from './service-request.util';
+import { normalizeEnum } from 'src/common/utils';
 
 @Injectable()
 export class ServiceRequestsService {
@@ -278,7 +279,7 @@ export class ServiceRequestsService {
 
       if (!newUsers.length) {
         throw new HttpException(
-          'Users have already been invited',
+          'Service providers have already been invited',
           HttpStatus.CONFLICT,
         );
       }
@@ -323,8 +324,10 @@ export class ServiceRequestsService {
         .leftJoinAndSelect('proposal.service_request', 'sr')
         .leftJoinAndSelect('sr.service_types', 'st')
         .leftJoinAndSelect('sr.created_by', 'created_by')
-        .where('sr.id = :id', { id: serviceRequestId })
-        .where('sp.id = :id', { id: serviceProviderId })
+        .where('sr.id = :serviceRequestId AND sp.id = :serviceProviderId', {
+          serviceRequestId,
+          serviceProviderId,
+        })
         .getOne();
       if (!proposal) {
         throw new NotFoundException(
@@ -336,13 +339,7 @@ export class ServiceRequestsService {
       throw new CatchErrorException(error);
     }
   }
-
-  async getProposalBySRSPClient(
-    serviceRequestId: string,
-    clientId: string,
-    serviceProviderId: string,
-  ) {
-    // SRSP == service request service provider
+  async getProposalById(proposalId: string) {
     try {
       const proposal = await this.serviceRequestProposalRepository
         .createQueryBuilder('proposal')
@@ -350,15 +347,8 @@ export class ServiceRequestsService {
         .leftJoinAndSelect('proposal.service_request', 'sr')
         .leftJoinAndSelect('sr.service_types', 'st')
         .leftJoinAndSelect('sr.created_by', 'created_by')
-        .where('sr.id = :id', { id: serviceRequestId })
-        .where('sp.id = :id', { id: serviceProviderId })
-        .where('created_by.id = :id', { id: clientId })
+        .where('proposal.id = :id', { id: proposalId })
         .getOne();
-      if (!proposal) {
-        throw new NotFoundException(
-          'Request not found for this service provider',
-        );
-      }
       return proposal;
     } catch (error) {
       throw new CatchErrorException(error);
@@ -458,13 +448,18 @@ export class ServiceRequestsService {
         );
       }
 
-      const proposal = await this.getProposalBySRSPClient(
+      const proposal = await this.getProposalBySRSP(
         serviceRequestId,
-        currentUser.id,
         service_provider_id,
       );
       const wallet = await this.walletService.getWalletBalance(currentUser);
 
+      if (!proposal.proposal_date) {
+        return new HttpException(
+          'Service provider have not sent proposal yet',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
       if (
         wallet.available_balance < proposal.proposal_amount
         // wallet.available_balance < proposal.proposal_amount
@@ -522,6 +517,7 @@ export class ServiceRequestsService {
         owner: serviceProvider,
       });
 
+      const delay = getMillisecondsDifference(serviceRequest.start_date);
       // send start proposal to queue
       await this.serviceRequestQueue.add(
         START_SERVICE_REQUEST_PROCESS,
@@ -529,11 +525,124 @@ export class ServiceRequestsService {
           proposalId: proposal.id,
           serviceRequestId: serviceRequest.id,
         },
-        { delay: 1000 },
+        { delay: delay },
       );
       return new ResponseMessage(
         'Service request proposal accepted successfully',
       );
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
+  }
+
+  async completeProposal(
+    currentUser: User,
+    serviceRequestId: string,
+    completeProposalDto: CompleteProposalDto,
+  ) {
+    const {
+      job_complete_note,
+      job_complete_file_1,
+      job_complete_file_2,
+      job_complete_file_3,
+      job_complete_file_4,
+      job_complete_file_5,
+      job_complete_file_6,
+    } = completeProposalDto;
+    const serviceRequest = await this.getServiceRequestById(serviceRequestId);
+    const proposal = await this.getProposalBySRSP(
+      serviceRequestId,
+      currentUser.id,
+    );
+
+    // check if proposal have been accepted by service provider
+    if (!proposal.proposal_accept_date) {
+      return new HttpException(
+        'You can only complete a service request that a client have accepted',
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    // check if proposal has started
+    if (proposal.status !== ServiceRequestStatus.IN_PROGRESS) {
+      return new HttpException(
+        'You can only complete a service request in progress',
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    const serviceProvider = proposal.service_provider;
+    const client = proposal.service_request.created_by;
+    proposal.proposal_accept_date = new Date();
+    proposal.status = ServiceRequestStatus.PENDING;
+    proposal.service_request = serviceRequest;
+    proposal.job_complete_note = job_complete_note;
+    proposal.job_complete_file_1 = job_complete_file_1;
+    proposal.job_complete_file_2 = job_complete_file_2;
+    proposal.job_complete_file_3 = job_complete_file_3;
+    proposal.job_complete_file_4 = job_complete_file_4;
+    proposal.job_complete_file_5 = job_complete_file_5;
+    proposal.job_complete_file_6 = job_complete_file_6;
+    serviceRequest.status = ServiceRequestStatus.COMPLETED;
+
+    await this.serviceRequestRepository.save({
+      ...serviceRequest,
+      status: ServiceRequestStatus.COMPLETED,
+    });
+    await this.serviceRequestProposalRepository.save(proposal);
+
+    //send Notification
+    await this.notificationService.sendNotification({
+      type: NotificationType.PROPOSAL_COMPLETE,
+      service_provider: serviceProvider,
+      service_request: serviceRequest,
+      subject: 'Service Request has been completed by Service provider',
+      owner: client,
+    });
+
+    //send sample email to client
+    await this.messagingService.sendEmail(
+      EmailTemplate.completeProposal({
+        serviceProvider: serviceProvider,
+        serviceRequest,
+        client,
+      }),
+    );
+
+    return new ResponseMessage('Service request have been marked as completed');
+  }
+
+  async startProposal(proposalId: string) {
+    try {
+      const proposal = await this.getProposalById(proposalId);
+      const serviceProvider = proposal.service_provider;
+      const serviceRequest = proposal.service_request;
+      const client = proposal.service_request.created_by;
+
+      // update status
+      proposal.status = ServiceRequestStatus.IN_PROGRESS;
+      serviceRequest.status = ServiceRequestStatus.IN_PROGRESS;
+      await this.serviceRequestRepository.save(serviceRequest);
+      await this.serviceRequestProposalRepository.save(proposal);
+
+      // send Notification
+      await this.notificationService.sendNotification({
+        type: NotificationType.PROPOSAL_COMPLETE,
+        service_provider: serviceProvider,
+        service_request: serviceRequest,
+        subject: 'Service Request has been started',
+        owner: serviceProvider,
+      });
+
+      //send sample email to client
+      await this.messagingService.sendEmail(
+        EmailTemplate.startProposal({
+          serviceProvider: serviceProvider,
+          serviceRequest,
+          client,
+        }),
+      );
+      return await this.getProposalById(proposalId);
     } catch (error) {
       throw new CatchErrorException(error);
     }

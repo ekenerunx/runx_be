@@ -26,6 +26,8 @@ import { ServiceRequest } from 'src/entities/service-request.entity';
 import { SendServiceRequestInvitationsDto } from './dto/send-service-request-invitation.dto';
 import { PatchServiceRequestDto } from './dto/patch-service-request.dto';
 import { AcceptProposalDto } from './dto/accept-proposal.dto';
+import { CompleteProposalDto } from './dto/complete-proposal.dto';
+import { startProposal } from 'src/common/email-template/start-proposal';
 
 @Controller('service-requests')
 export class ServiceRequestsController {
@@ -155,12 +157,27 @@ export class ServiceRequestsController {
     );
   }
 
-  // @Post('/mark-completed')
-  // @UseGuards(JwtAuthGuard, RoleGuard)
-  // async markCompleted(
-  //   @CurrentUser() user: User,
-  //   @Body() body: MartCompletedDto,
-  // ) {
-  //   return { body, user, serviceRequestId };
-  // }
+  @Post('/id/:serviceRequestId/complete-proposal')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.SERVICE_PROVIDER)
+  @HttpCode(200)
+  async completeProposal(
+    @CurrentUser() currentUser: User,
+    @Body() completeProposalDto: CompleteProposalDto,
+    @Param('serviceRequestId') serviceRequestId: string,
+  ) {
+    return await this.serviceRequestsService.completeProposal(
+      currentUser,
+      serviceRequestId,
+      completeProposalDto,
+    );
+  }
+
+  @Post('/proposal/:proposalId/start-proposal')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  // @Roles(UserRoles.CLIENT)
+  @HttpCode(200)
+  async startProposal(@Param('proposalId') proposalId: string) {
+    return await this.serviceRequestsService.startProposal(proposalId);
+  }
 }

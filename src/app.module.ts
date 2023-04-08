@@ -16,6 +16,7 @@ import { NotificationModule } from './notification/notification.module';
 import { BankAccount } from './entities/bank-account.entity';
 import { Transaction } from './entities/transaction.entity';
 import { PaymentProcessorModule } from './payment-processor/payment-processor.module';
+import { FileModule } from './file/file.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
@@ -62,6 +63,7 @@ import { PaymentProcessorModule } from './payment-processor/payment-processor.mo
     WalletModule,
     NotificationModule,
     PaymentProcessorModule,
+    FileModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: DatabaseExceptionFilter }],
 })
