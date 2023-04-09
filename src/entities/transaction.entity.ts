@@ -20,16 +20,6 @@ export class Transaction extends SharedEntity {
   @Column({ enum: TransactionType })
   tnx_type: TransactionType;
 
-  @OneToOne(() => User)
-  @JoinTable()
-  beneficiary: User;
-
   @ManyToOne(() => User, (user) => user.transactions)
   user: User;
-
-  @Column({ nullable: true })
-  is_cleint: boolean;
-
-  @Column({ nullable: true })
-  is_sp: boolean;
 }

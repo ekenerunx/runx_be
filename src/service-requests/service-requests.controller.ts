@@ -28,6 +28,8 @@ import { PatchServiceRequestDto } from './dto/patch-service-request.dto';
 import { AcceptProposalDto } from './dto/accept-proposal.dto';
 import { CompleteProposalDto } from './dto/complete-proposal.dto';
 import { startProposal } from 'src/common/email-template/start-proposal';
+import { RaiseDisputeDto } from './dto/raise-dispute.dto';
+import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
 
 @Controller('service-requests')
 export class ServiceRequestsController {
@@ -179,5 +181,35 @@ export class ServiceRequestsController {
   @HttpCode(200)
   async startProposal(@Param('proposalId') proposalId: string) {
     return await this.serviceRequestsService.startProposal(proposalId);
+  }
+
+  @Post('/id/:serviceRequestId/raise-dispute')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.SERVICE_PROVIDER)
+  @HttpCode(200)
+  async raiseDispute(
+    @CurrentUser() currentUser: User,
+    @Param('serviceRequestId') serviceRequestId: string,
+    @Body() raiseDisputeDto: RaiseDisputeDto,
+  ) {
+    return await this.serviceRequestsService.raiseDispute(
+      serviceRequestId,
+      raiseDisputeDto,
+    );
+  }
+
+  @Post('/id/:serviceRequestId/resolve-dispute')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.ADMIN)
+  @HttpCode(200)
+  async resolveDispute(
+    @CurrentUser() currentUser: User,
+    @Param('serviceRequestId') serviceRequestId: string,
+    @Body() resolveDisputeDto: ResolveDisputeDto,
+  ) {
+    return await this.serviceRequestsService.resolveDispute(
+      serviceRequestId,
+      resolveDisputeDto,
+    );
   }
 }

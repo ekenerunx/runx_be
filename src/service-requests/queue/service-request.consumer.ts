@@ -6,7 +6,10 @@ import { Process, Processor } from '@nestjs/bull';
 import { Job } from 'bull';
 import { SERVICE_REQUEST_QUEUE } from '../service-request.constant';
 import { Logger } from '@nestjs/common';
-import { StartServiceRequestJob } from '../interfaces/service-requests.interface';
+import {
+  ResolveDisputeQueueProcess,
+  StartServiceRequestJob,
+} from '../interfaces/service-requests.interface';
 import { ServiceRequestsService } from '../service-requests.service';
 
 @Processor(SERVICE_REQUEST_QUEUE)
@@ -22,7 +25,11 @@ export class ServiceRequestConsumer {
   }
 
   @Process(RESOLVE_DISPUTE_PROCESS)
-  async resolveDispute(job: Job<any>) {
-    this.logger.log(JSON.stringify(job));
+  async resolveDispute(job: Job<ResolveDisputeQueueProcess>) {
+    const { serviceRequestId, resolveDisputeDto } = job.data;
+    await this.serviceRequestsService.resolveDispute(
+      serviceRequestId,
+      resolveDisputeDto,
+    );
   }
 }

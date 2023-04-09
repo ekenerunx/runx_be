@@ -51,7 +51,7 @@ export class ServiceRequest extends SharedEntity {
   @Column({ nullable: true })
   end_date: Date;
 
-  @Column({ enum: ServiceRequestStatus, nullable: true })
+  @Column({ type: 'enum', enum: ServiceRequestStatus, nullable: true })
   status: ServiceRequestStatus;
 
   @Column({ nullable: true, default: 0.0 })
