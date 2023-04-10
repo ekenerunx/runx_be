@@ -110,6 +110,9 @@ export class User {
   @Column({ nullable: true })
   ver_doc: string;
 
+  @Column({ nullable : true})
+  profession: string;
+
   @Column({ nullable: true })
   amount_per_hour: number;
 

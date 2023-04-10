@@ -32,13 +32,13 @@ export class ServiceRequestProposal extends SharedEntity {
   @JoinColumn()
   service_provider: User;
 
-  // @OneToOne(() => Rating)
-  // @JoinColumn()
-  // client_rating: Rating;
+  @OneToOne(() => Rating)
+  @JoinColumn()
+  client_rating: Rating;
 
-  // @OneToOne(() => Rating)
-  // @JoinColumn()
-  // service_provider_rating: Rating;
+  @OneToOne(() => Rating)
+  @JoinColumn()
+  service_provider_rating: Rating;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   invite_date: Date;

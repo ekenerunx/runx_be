@@ -79,4 +79,8 @@ export class PatchUserDto {
   @IsString()
   @IsOptional()
   loc_region?: string;
+
+  @IsString()
+  @IsOptional()
+  profession?: string;
 }

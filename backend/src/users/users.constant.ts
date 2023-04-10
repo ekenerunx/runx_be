@@ -29,6 +29,7 @@ export const USER_FIELDS_TO_RETURN = [
   'user.created_at',
   'user.deleted_at',
   'user.is_deleted',
+  'user.profession',
   'st.name',
   'st.id',
 ];

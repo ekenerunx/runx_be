@@ -14,10 +14,16 @@ import { ServiceRequestProposal } from 'src/entities/service-request-proposal.en
 import { NOTIFICATION_QUEUE } from 'src/notification/notification.constant';
 import { SERVICE_REQUEST_QUEUE } from './service-request.constant';
 import { WalletModule } from 'src/wallet/wallet.module';
+import { Rating } from 'src/entities/rating.entity';
 @Module({
   imports: [
     BullModule.registerQueue({ name: SERVICE_REQUEST_QUEUE }),
-    TypeOrmModule.forFeature([ServiceRequest, User, ServiceRequestProposal]),
+    TypeOrmModule.forFeature([
+      ServiceRequest,
+      User,
+      ServiceRequestProposal,
+      Rating,
+    ]),
     ServiceTypesModule,
     NotificationModule,
     UsersModule,

@@ -17,6 +17,7 @@ import { BankAccount } from './entities/bank-account.entity';
 import { Transaction } from './entities/transaction.entity';
 import { PaymentProcessorModule } from './payment-processor/payment-processor.module';
 import { FileModule } from './file/file.module';
+import { Rating } from './entities/rating.entity';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
@@ -34,6 +35,7 @@ import { FileModule } from './file/file.module';
             __dirname + '/entities/**/*.entity{.ts,.js}',
             BankAccount,
             Transaction,
+            Rating,
           ],
           synchronize: true,
           autoLoadEntities: true,
