@@ -5,6 +5,7 @@ export enum ServiceRequestStatus {
   'AWAITING_PAYMENT' = 'AWAITING_PAYMENT',
   'IN_PROGRESS' = 'IN_PROGRESS',
   'CANCELLED' = 'CANCELLED',
+  'DECLINED' = 'DECLINED',
   'NEW' = 'NEW',
 }
 

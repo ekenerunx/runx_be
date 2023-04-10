@@ -30,6 +30,7 @@ import { CompleteProposalDto } from './dto/complete-proposal.dto';
 import { startProposal } from 'src/common/email-template/start-proposal';
 import { RaiseDisputeDto } from './dto/raise-dispute.dto';
 import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
+import { SPJobQueryDto } from './dto/sp-job.query.dto';
 
 @Controller('service-requests')
 export class ServiceRequestsController {
@@ -75,14 +76,18 @@ export class ServiceRequestsController {
     );
   }
 
-  @Get('stats')
+  @Get('client/stats')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRoles.CLIENT)
   async getServiceRequestStats(@CurrentUser() user: User) {
-    if (user.is_client) {
-      return await this.serviceRequestsService.getClientStats(user);
-    }
-    return {};
+    return await this.serviceRequestsService.getClientStats(user);
+  }
+
+  @Get('sp/stats')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.SERVICE_PROVIDER)
+  async getSPStat(@CurrentUser() user: User) {
+    return await this.serviceRequestsService.getSPStats(user);
   }
 
   @Get('/id/:serviceRequestId/service-providers')
@@ -104,13 +109,21 @@ export class ServiceRequestsController {
   @Roles(UserRoles.CLIENT)
   async getClientServiceRequests(
     @CurrentUser() user: User,
-    // @Param('serviceRequestId') serviceRequestId: string,
     @Query() query: ClientServiceRequestQueryDto,
   ): Promise<Pagination<ServiceRequest>> {
     return await this.serviceRequestsService.findServiceRequestsByUserAndStatus(
       user,
       query,
     );
+  }
+  @Get('/sp/jobs')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.SERVICE_PROVIDER)
+  async getSPJobs(
+    @CurrentUser() user: User,
+    @Query() query: SPJobQueryDto,
+  ): Promise<Pagination<ServiceRequest>> {
+    return await this.serviceRequestsService.findSPJobs(user, query);
   }
 
   @Post('/id/:serviceRequestId/send-invites')
