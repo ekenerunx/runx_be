@@ -3,13 +3,12 @@ import {
   Column,
   Entity,
   JoinColumn,
-  ManyToMany,
   ManyToOne,
-  OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 import { ServiceRequest } from './service-request.entity';
+import { Disputant } from 'src/service-requests/interfaces/service-requests.interface';
 
 @Entity()
 export class Notification {
@@ -28,14 +27,17 @@ export class Notification {
   @Column()
   subject: string;
 
-  @Column({ enum: NotificationType })
+  @Column({ type: 'enum', enum: NotificationType, nullable: true })
   type: NotificationType;
+
+  @Column({ type: 'enum', enum: Disputant, nullable: true })
+  disputant: Disputant;
 
   @Column({ nullable: true })
   credit_amount: number;
 
   @Column({ nullable: true })
-  withdrawal_amount: number;
+  debit_amount: number;
 
   @Column({ nullable: true })
   proposal_amount: number;

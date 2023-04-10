@@ -8,7 +8,7 @@ export const NOTIFICATION_LIST_FIELDS = [
   'not.subject',
   'not.type',
   'not.credit_amount',
-  'not.withdrawal_amount',
+  'not.debit_amount',
   'not.proposal_amount',
   'not.invitation_amount',
   'sr.id',

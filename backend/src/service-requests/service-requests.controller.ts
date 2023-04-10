@@ -26,6 +26,11 @@ import { ServiceRequest } from 'src/entities/service-request.entity';
 import { SendServiceRequestInvitationsDto } from './dto/send-service-request-invitation.dto';
 import { PatchServiceRequestDto } from './dto/patch-service-request.dto';
 import { AcceptProposalDto } from './dto/accept-proposal.dto';
+import { CompleteProposalDto } from './dto/complete-proposal.dto';
+import { startProposal } from 'src/common/email-template/start-proposal';
+import { RaiseDisputeDto } from './dto/raise-dispute.dto';
+import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
+import { SPJobQueryDto } from './dto/sp-job.query.dto';
 
 @Controller('service-requests')
 export class ServiceRequestsController {
@@ -71,14 +76,18 @@ export class ServiceRequestsController {
     );
   }
 
-  @Get('stats')
+  @Get('client/stats')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRoles.CLIENT)
   async getServiceRequestStats(@CurrentUser() user: User) {
-    if (user.is_client) {
-      return await this.serviceRequestsService.getClientStats(user);
-    }
-    return {};
+    return await this.serviceRequestsService.getClientStats(user);
+  }
+
+  @Get('sp/stats')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.SERVICE_PROVIDER)
+  async getSPStat(@CurrentUser() user: User) {
+    return await this.serviceRequestsService.getSPStats(user);
   }
 
   @Get('/id/:serviceRequestId/service-providers')
@@ -100,13 +109,21 @@ export class ServiceRequestsController {
   @Roles(UserRoles.CLIENT)
   async getClientServiceRequests(
     @CurrentUser() user: User,
-    // @Param('serviceRequestId') serviceRequestId: string,
     @Query() query: ClientServiceRequestQueryDto,
   ): Promise<Pagination<ServiceRequest>> {
     return await this.serviceRequestsService.findServiceRequestsByUserAndStatus(
       user,
       query,
     );
+  }
+  @Get('/sp/jobs')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.SERVICE_PROVIDER)
+  async getSPJobs(
+    @CurrentUser() user: User,
+    @Query() query: SPJobQueryDto,
+  ): Promise<Pagination<ServiceRequest>> {
+    return await this.serviceRequestsService.findSPJobs(user, query);
   }
 
   @Post('/id/:serviceRequestId/send-invites')
@@ -155,12 +172,57 @@ export class ServiceRequestsController {
     );
   }
 
-  // @Post('/mark-completed')
-  // @UseGuards(JwtAuthGuard, RoleGuard)
-  // async markCompleted(
-  //   @CurrentUser() user: User,
-  //   @Body() body: MartCompletedDto,
-  // ) {
-  //   return { body, user, serviceRequestId };
-  // }
+  @Post('/id/:serviceRequestId/complete-proposal')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.SERVICE_PROVIDER)
+  @HttpCode(200)
+  async completeProposal(
+    @CurrentUser() currentUser: User,
+    @Body() completeProposalDto: CompleteProposalDto,
+    @Param('serviceRequestId') serviceRequestId: string,
+  ) {
+    return await this.serviceRequestsService.completeProposal(
+      currentUser,
+      serviceRequestId,
+      completeProposalDto,
+    );
+  }
+
+  @Post('/proposal/:proposalId/start-proposal')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  // @Roles(UserRoles.CLIENT)
+  @HttpCode(200)
+  async startProposal(@Param('proposalId') proposalId: string) {
+    return await this.serviceRequestsService.startProposal(proposalId);
+  }
+
+  @Post('/id/:serviceRequestId/raise-dispute')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.SERVICE_PROVIDER)
+  @HttpCode(200)
+  async raiseDispute(
+    @CurrentUser() currentUser: User,
+    @Param('serviceRequestId') serviceRequestId: string,
+    @Body() raiseDisputeDto: RaiseDisputeDto,
+  ) {
+    return await this.serviceRequestsService.raiseDispute(
+      serviceRequestId,
+      raiseDisputeDto,
+    );
+  }
+
+  @Post('/id/:serviceRequestId/resolve-dispute')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.ADMIN)
+  @HttpCode(200)
+  async resolveDispute(
+    @CurrentUser() currentUser: User,
+    @Param('serviceRequestId') serviceRequestId: string,
+    @Body() resolveDisputeDto: ResolveDisputeDto,
+  ) {
+    return await this.serviceRequestsService.resolveDispute(
+      serviceRequestId,
+      resolveDisputeDto,
+    );
+  }
 }

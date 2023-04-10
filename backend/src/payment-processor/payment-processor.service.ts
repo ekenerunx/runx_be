@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import { CatchErrorException } from 'src/exceptions';
 import { BankList, VerifyBankAccount } from './interface/paystack.interface';
+import { SupportedCountries } from 'src/system/system.interface';
 
 @Injectable()
 export class PaymentProcessorService {
@@ -44,7 +45,7 @@ export class PaymentProcessorService {
     return await this.paystackHttps<VerifyBankAccount>('GET', url);
   }
 
-  async getSupportedBanks(country: 'nigeria') {
+  async getSupportedBanks(country: SupportedCountries) {
     const url = `bank?country=${country}`;
     return await this.paystackHttps<BankList>('GET', url);
   }
