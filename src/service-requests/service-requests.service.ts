@@ -987,10 +987,10 @@ export class ServiceRequestsService {
         reviewer: proposal.service_request.created_by,
       });
       await this.ratingRepo.save(rating);
-      return await this.getProposalBySRSP(
-        service_request_id,
-        service_provider_id,
-      );
+      // return await this.getProposalBySRSP(
+      //   service_request_id,
+      //   service_provider_id,
+      // );
       return new ResponseMessage('Service provider successfully reviewed');
     } catch (error) {
       throw new CatchErrorException(error);
