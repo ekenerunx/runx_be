@@ -164,11 +164,10 @@ export class UsersController {
     @Body() requestPhoneVerificationDto: RequestPhoneVerificationDto,
     @CurrentUser() user: User,
   ) {
-    await this.usersService.requestPhoneVerification(
+    return await this.usersService.requestPhoneVerification(
       user,
       requestPhoneVerificationDto,
     );
-    return { message: 'Verifcation OTP has been sent to your phone number' };
   }
 
   @UseGuards(JwtAuthGuard)
@@ -177,8 +176,10 @@ export class UsersController {
     @Body() verifyPhoneNumberDto: VerifyPhoneNumberDto,
     @CurrentUser() user: User,
   ) {
-    await this.usersService.verifyPhoneNumber(user, verifyPhoneNumberDto);
-    return { message: 'Phone Number has been successfully verified' };
+    return await this.usersService.verifyPhoneNumber(
+      user,
+      verifyPhoneNumberDto,
+    );
   }
 
   @Get('profile')

@@ -35,6 +35,7 @@ import { resetTransactionPinMessage } from 'src/common/email-template/reset-trnx
 import { ListUserQueryDto } from './dto/list-users-query.dto';
 import { PaginationResponse } from 'src/common/interface';
 import { paginate } from 'nestjs-typeorm-paginate';
+import { ResponseMessage } from 'src/common/interface/success-message.interface';
 
 @Injectable()
 export class UsersService {
@@ -344,6 +345,15 @@ export class UsersService {
           HttpStatus.CONFLICT,
         );
       }
+      const checkExisting = await this.userRepository.findOne({
+        where: { phone_number },
+      });
+      if (checkExisting) {
+        throw new HttpException(
+          'Phone number already in use',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
       const user = await this.userRepository
         .createQueryBuilder('user')
         .where('user.id = :id', { id: currentUser.id })
@@ -355,9 +365,12 @@ export class UsersService {
         identifier: phone_number,
       });
       await this.userRepository.save(user);
-      return await this.messagingService.sendSMS(
+      await this.messagingService.sendSMS(
         phone_number,
         `Your verification code is: ${otp} expires in 20 minutes`,
+      );
+      return new ResponseMessage(
+        'Verifcation OTP has been sent to your phone number',
       );
     } catch (error) {
       throw new DatabaseException(error);
@@ -388,12 +401,13 @@ export class UsersService {
       user.phone_number = phone_number;
       await this.userRepository.save(user);
       await this.verificationCodeService.markAsUsed(otp.id);
-      return await this.messagingService.sendSMS(
+      await this.messagingService.sendSMS(
         phone_number,
         `Your phone number has been successfully verified`,
       );
+      return new ResponseMessage('Phone Number has been successfully verified');
     } catch (error) {
-      throw new DatabaseException(error);
+      throw new CatchErrorException(error);
     }
   }
 
