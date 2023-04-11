@@ -1,4 +1,4 @@
-import { PaginationQueryDto } from './../common/dto/pagination-query.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { WalletBalance } from './interfaces/wallet.interface';
 import {
   Body,

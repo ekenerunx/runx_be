@@ -1,8 +1,8 @@
 import { SendProposalDto } from './dto/send-proposal.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guide';
 import { User } from 'src/entities/user.entity';
-import { UserRoles } from './../users/interfaces/user.interface';
-import { RoleGuard } from './../guards/role.guard';
+import { UserRoles } from '../users/interfaces/user.interface';
+import { RoleGuard } from '../guards/role.guard';
 import {
   Controller,
   Get,

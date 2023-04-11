@@ -1,7 +1,7 @@
 import {
   IdentifierType,
   VerificationCodeType,
-} from './../verification-code/interfaces/verification-code.interface';
+} from '../verification-code/interfaces/verification-code.interface';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity({ name: ' verification_code' })

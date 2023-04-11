@@ -1,7 +1,7 @@
 import {
   START_SERVICE_REQUEST_PROCESS,
   RESOLVE_DISPUTE_PROCESS,
-} from './../service-request.constant';
+} from '../service-request.constant';
 import { Process, Processor } from '@nestjs/bull';
 import { Job } from 'bull';
 import { SERVICE_REQUEST_QUEUE } from '../service-request.constant';

@@ -5,7 +5,7 @@ import {
   DisputeResolveAction,
   DisputeStatus,
   ServiceRequestStatus,
-} from './../service-requests/interfaces/service-requests.interface';
+} from '../service-requests/interfaces/service-requests.interface';
 import { User } from 'src/entities/user.entity';
 import { ServiceRequest } from './service-request.entity';
 import {

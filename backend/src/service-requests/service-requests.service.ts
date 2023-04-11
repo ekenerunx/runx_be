@@ -1,9 +1,9 @@
 import { CompleteProposalDto } from './dto/complete-proposal.dto';
 import { SendProposalDto } from './dto/send-proposal.dto';
-import { MessagingService } from './../messaging/messaging.service';
-import { NotificationService } from './../notification/notification.service';
-import { ServiceRequestProposal } from './../entities/service-request-proposal.entity';
-import { ServiceRequest } from './../entities/service-request.entity';
+import { MessagingService } from '../messaging/messaging.service';
+import { NotificationService } from '../notification/notification.service';
+import { ServiceRequestProposal } from '../entities/service-request-proposal.entity';
+import { ServiceRequest } from '../entities/service-request.entity';
 import { SendServiceRequestInvitationsDto } from './dto/send-service-request-invitation.dto';
 import {
   Disputant,
@@ -987,10 +987,10 @@ export class ServiceRequestsService {
         reviewer: proposal.service_request.created_by,
       });
       await this.ratingRepo.save(rating);
-      // return await this.getProposalBySRSP(
-      //   service_request_id,
-      //   service_provider_id,
-      // );
+      return await this.getProposalBySRSP(
+        service_request_id,
+        service_provider_id,
+      );
       return new ResponseMessage('Service provider successfully reviewed');
     } catch (error) {
       throw new CatchErrorException(error);

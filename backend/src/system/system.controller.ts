@@ -1,4 +1,4 @@
-import { COUNTRIES } from './../constant/countries.constant';
+import { COUNTRIES } from '../constant/countries.constant';
 import { Controller, Query } from '@nestjs/common';
 import { Get } from '@nestjs/common/decorators/http/request-mapping.decorator';
 import { PaymentProcessorService } from 'src/payment-processor/payment-processor.service';
