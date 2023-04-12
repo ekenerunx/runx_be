@@ -36,6 +36,7 @@ import { ListUserQueryDto } from './dto/list-users-query.dto';
 import { PaginationResponse } from 'src/common/interface';
 import { paginate } from 'nestjs-typeorm-paginate';
 import { ResponseMessage } from 'src/common/interface/success-message.interface';
+import { ToggleVisibilityDto } from './dto/toggle-visibility.dto';
 
 @Injectable()
 export class UsersService {
@@ -437,6 +438,24 @@ export class UsersService {
           'user.is_admin',
         ]);
       return paginate<User>(queryBuilder, { limit, page });
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
+  }
+
+  async toggleVisibility(
+    currentUser: User,
+    toggleVisibilityDto: ToggleVisibilityDto,
+  ) {
+    try {
+      const { is_online } = toggleVisibilityDto;
+      const user = await this.userRepository.findOne({
+        where: { id: currentUser.id },
+      });
+      await this.userRepository.save({ ...user, is_online: is_online });
+      return new ResponseMessage(
+        `${is_online ? 'Online' : 'Offine'} successfully updated`,
+      );
     } catch (error) {
       throw new CatchErrorException(error);
     }

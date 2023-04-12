@@ -11,13 +11,10 @@ import {
   Post,
   Get,
   Param,
-  Delete,
   Patch,
   UseGuards,
   Request,
-  Put,
   Query,
-  UseFilters,
 } from '@nestjs/common/decorators';
 import { AuthService } from 'src/auth/auth.service';
 import { LocalAuthGuard } from 'src/auth/local-auth.guard';
@@ -37,7 +34,6 @@ import { CreateTransactionPinDto } from './dto/create-transaction-pin.dto';
 import { CurrentUser } from 'src/decorators/current-user.decorator';
 import { User } from 'src/entities/user.entity';
 import { ResetTransactionPinDto } from './dto/reset-transaction-pin.dto';
-import { CustomAuthExceptionFilter } from 'src/filters/custom-auth-exception.filter';
 import { VerifyPhoneNumberDto } from './dto/verify-phone-number.dto';
 import { welcomeMessage } from 'src/common/email-template/register-email';
 import { forgotPasswordEmail } from 'src/common/email-template/forgot-password-email';
@@ -46,6 +42,8 @@ import { UserRoles } from './interfaces/user.interface';
 import { ListUserQueryDto } from './dto/list-users-query.dto';
 import { RoleGuard } from 'src/guards/role.guard';
 import { PaginationResponse } from 'src/common/interface';
+import { ToggleVisibilityDto } from './dto/toggle-visibility.dto';
+import { ResponseMessage } from 'src/common/interface/success-message.interface';
 @Controller('users')
 export class UsersController {
   constructor(
@@ -81,6 +79,7 @@ export class UsersController {
   @Post('/login')
   // @UseFilters(CustomAuthExceptionFilter)
   async loginUser(@Body() loginUserDto: LoginUserDto, @Request() req) {
+    await this.usersService.toggleVisibility(req.user, { is_online: true });
     return this.authService.login(req.user);
   }
 
@@ -246,5 +245,18 @@ export class UsersController {
     @Query() listUserQueryDto: ListUserQueryDto,
   ): Promise<PaginationResponse<User>> {
     return await this.usersService.listUsers(listUserQueryDto);
+  }
+
+  @Post('toggle-visibility')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.SERVICE_PROVIDER, UserRoles.CLIENT)
+  async toggleVisibility(
+    @CurrentUser() currentUser: User,
+    @Body() listUserQueryDto: ToggleVisibilityDto,
+  ): Promise<ResponseMessage> {
+    return await this.usersService.toggleVisibility(
+      currentUser,
+      listUserQueryDto,
+    );
   }
 }

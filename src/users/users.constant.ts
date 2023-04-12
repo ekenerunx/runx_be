@@ -3,6 +3,7 @@ export const USER_FIELDS_TO_RETURN = [
   'user.first_name',
   'user.last_name',
   'user.email',
+  'user.is_online',
   'user.is_admin',
   'user.is_client',
   'user.is_sp',

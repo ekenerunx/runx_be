@@ -80,6 +80,9 @@ export class User {
   @Column({ nullable: true })
   loc_geo: string;
 
+  @Column({ nullable: true, default: false })
+  is_online: boolean;
+
   @Column({ nullable: true })
   loc_add: string;
 
@@ -110,7 +113,7 @@ export class User {
   @Column({ nullable: true })
   ver_doc: string;
 
-  @Column({ nullable : true})
+  @Column({ nullable: true })
   profession: string;
 
   @Column({ nullable: true })
