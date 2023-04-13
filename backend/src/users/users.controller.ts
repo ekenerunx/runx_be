@@ -1,9 +1,9 @@
 import { UserNotFoundException } from 'src/exceptions';
 import { LoginUserDto } from './dto/login-user.dto';
-import { MessagingService } from './../messaging/messaging.service';
-import { VerificationCodeType } from './../verification-code/interfaces/verification-code.interface';
+import { MessagingService } from '../messaging/messaging.service';
+import { VerificationCodeType } from '../verification-code/interfaces/verification-code.interface';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { VerificationCodeService } from './../verification-code/verification-code.service';
+import { VerificationCodeService } from '../verification-code/verification-code.service';
 import { Controller, HttpException } from '@nestjs/common';
 import {
   Body,

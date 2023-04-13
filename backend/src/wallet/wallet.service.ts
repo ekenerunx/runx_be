@@ -1,6 +1,7 @@
+import { TransactionType } from 'src/wallet/interfaces/transaction.interface';
 import { PartialType } from '@nestjs/swagger';
 import { Repository } from 'typeorm';
-import { Transaction } from './../entities/transaction.entity';
+import { Transaction } from '../entities/transaction.entity';
 import {
   HttpException,
   HttpStatus,
@@ -16,11 +17,16 @@ import { PaymentProcessorService } from 'src/payment-processor/payment-processor
 import { verifyNamesInString } from 'src/common/utils';
 import {
   AcceptServiceRequestTransaction,
+  UpdateWalletBalance,
   WalletBalance,
 } from './interfaces/wallet.interface';
 import { PaginationResponse } from 'src/common/interface';
 import { paginate } from 'nestjs-typeorm-paginate';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { NotificationService } from 'src/notification/notification.service';
+import { MessagingService } from 'src/messaging/messaging.service';
+import { EmailTemplate } from 'src/common/email-template';
+import { normalize } from 'path';
 
 @Injectable()
 export class WalletService {
@@ -33,6 +39,9 @@ export class WalletService {
     private readonly userRepo: Repository<User>,
 
     private readonly paymentProcessorService: PaymentProcessorService,
+
+    private readonly notificationService: NotificationService,
+    private readonly messagingService: MessagingService,
   ) {}
 
   async getWalletBalance(currentUser): Promise<WalletBalance> {
@@ -70,6 +79,12 @@ export class WalletService {
     } catch (error) {
       throw new CatchErrorException(error);
     }
+  }
+
+  async createTransaction(__transaction: Partial<Transaction>) {
+    const transaction = await this.transactionRepo.create(__transaction);
+    await this.transactionRepo.save(transaction);
+    return;
   }
 
   async addBankAccount(
@@ -162,11 +177,32 @@ export class WalletService {
     }
   }
 
-  async updateWalletBalance(user: User, balance: number, escrow?: number) {
-    const { is_client } = user;
-    const balanceFields = is_client
-      ? { client_wallet_balance: balance, client_wallet_escrow: escrow }
-      : { sp_wallet_balance: balance, sp_wallet_escrow: escrow };
+  async updateWalletBalance({
+    user,
+    amount,
+    walletToUpdate,
+    escrow,
+    transactionType,
+    description,
+    sendNotification,
+    sendEmail,
+    serviceRequest,
+    serviceProvider,
+    client,
+    notificationType,
+  }: UpdateWalletBalance) {
+    const isClient = walletToUpdate === 'client';
+    const clientBalance = user.client_wallet_balance + amount;
+    const spBalance = user.sp_wallet_balance + amount;
+    const balanceFields = isClient
+      ? {
+          client_wallet_balance: clientBalance,
+          client_wallet_escrow: user.client_wallet_escrow + escrow,
+        }
+      : {
+          sp_wallet_balance: spBalance,
+          sp_wallet_escrow: user.sp_wallet_escrow + escrow,
+        };
     const updatedRecord = await this.userRepo
       .createQueryBuilder()
       .update(User)
@@ -174,6 +210,36 @@ export class WalletService {
       .where('id = :id', { id: user.id })
       .returning('*')
       .execute();
+
+    //addd to Transaction
+    this.createTransaction({
+      description,
+      amount,
+      bal_after: isClient ? clientBalance : spBalance,
+      tnx_type: transactionType,
+      user,
+    });
+    if (sendNotification) {
+      //send Notification
+      await this.notificationService.sendNotification({
+        type: notificationType,
+        subject: `${normalize(notificationType)}`,
+        owner: user,
+        service_provider: serviceProvider,
+        service_request: serviceRequest,
+        client: client,
+        ...(amount > 0
+          ? {
+              credit_amount: amount,
+            }
+          : { debit_amount: amount }),
+      });
+    }
+    if (sendEmail) {
+      await this.messagingService.sendEmail(
+        EmailTemplate.transactionUpdate({ user, amount, transactionType }),
+      );
+    }
     return updatedRecord.raw[0];
   }
 }

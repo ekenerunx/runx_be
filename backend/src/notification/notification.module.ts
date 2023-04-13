@@ -1,4 +1,4 @@
-import { Notification } from './../entities/notification.entity';
+import { Notification } from '../entities/notification.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Module } from '@nestjs/common';
 import { NotificationService } from './notification.service';

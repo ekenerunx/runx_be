@@ -1,7 +1,7 @@
 import { ServiceRequestProposal } from 'src/entities/service-request-proposal.entity';
 import { ServiceRequest } from 'src/entities/service-request.entity';
 import { ServiceType } from 'src/entities/service-type.entity';
-import { Gender } from './../users/interfaces/user.interface';
+import { Gender } from '../users/interfaces/user.interface';
 import {
   Column,
   Entity,
@@ -109,6 +109,9 @@ export class User {
 
   @Column({ nullable: true })
   ver_doc: string;
+
+  @Column({ nullable : true})
+  profession: string;
 
   @Column({ nullable: true })
   amount_per_hour: number;

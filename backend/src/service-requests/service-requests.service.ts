@@ -1,11 +1,16 @@
-import { Notification } from './../entities/notification.entity';
+import { CompleteProposalDto } from './dto/complete-proposal.dto';
 import { SendProposalDto } from './dto/send-proposal.dto';
-import { MessagingService } from './../messaging/messaging.service';
-import { NotificationService } from './../notification/notification.service';
-import { ServiceRequestProposal } from './../entities/service-request-proposal.entity';
-import { ServiceRequest } from './../entities/service-request.entity';
+import { MessagingService } from '../messaging/messaging.service';
+import { NotificationService } from '../notification/notification.service';
+import { ServiceRequestProposal } from '../entities/service-request-proposal.entity';
+import { ServiceRequest } from '../entities/service-request.entity';
 import { SendServiceRequestInvitationsDto } from './dto/send-service-request-invitation.dto';
 import {
+  Disputant,
+  DisputeResolveAction,
+  DisputeResolver,
+  DisputeStatus,
+  ResolveDisputeQueueProcess,
   ServiceRequestStatus,
   StartServiceRequestJob,
 } from 'src/service-requests/interfaces/service-requests.interface';
@@ -28,19 +33,26 @@ import { paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { InjectQueue } from '@nestjs/bull';
 import {
   GET_SERVICE_REQUEST_BY_ID_FIELDS,
+  RESOLVE_DISPUTE_PROCESS,
   SERVICE_REQUEST_QUEUE,
   START_SERVICE_REQUEST_PROCESS,
 } from './service-request.constant';
-import { Queue } from 'bull';
+import { Queue, Job } from 'bull';
 import { PatchServiceRequestDto } from './dto/patch-service-request.dto';
 import { serviceRequestInvitationEmailTemplate } from 'src/common/email-template/sr-invitation-email';
 import { EmailTemplate } from 'src/common/email-template';
 import { NotificationType } from 'src/notification/interface/notification.interface';
 import { AcceptProposalDto } from './dto/accept-proposal.dto';
 import { ResponseMessage } from 'src/common/interface/success-message.interface';
-import { normalizeEnum } from 'src/common/utils';
 import { WalletService } from 'src/wallet/wallet.service';
 import { TransactionType } from 'src/wallet/interfaces/transaction.interface';
+import { getMillisecondsDifference } from './service-request.util';
+import { normalizeEnum } from 'src/common/utils';
+import { RaiseDisputeDto } from './dto/raise-dispute.dto';
+import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
+import { SPJobQueryDto } from './dto/sp-job.query.dto';
+import { GiveReviewDto } from './dto/give-review.dto';
+import { Rating } from 'src/entities/rating.entity';
 
 @Injectable()
 export class ServiceRequestsService {
@@ -50,6 +62,7 @@ export class ServiceRequestsService {
 
     @InjectRepository(ServiceRequestProposal)
     private serviceRequestProposalRepository: Repository<ServiceRequestProposal>,
+    @InjectRepository(Rating) private readonly ratingRepo: Repository<Rating>,
 
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private serviceTypesService: ServiceTypesService,
@@ -58,7 +71,9 @@ export class ServiceRequestsService {
     private readonly notificationService: NotificationService,
 
     @InjectQueue(SERVICE_REQUEST_QUEUE)
-    private readonly serviceRequestQueue: Queue<StartServiceRequestJob>,
+    private readonly serviceRequestQueue: Queue<
+      StartServiceRequestJob | ResolveDisputeQueueProcess
+    >,
 
     private readonly messagingService: MessagingService,
     private readonly walletService: WalletService,
@@ -210,14 +225,54 @@ export class ServiceRequestsService {
       .select('sr.status as status')
       .addSelect('COUNT(sr.id) as count')
       .getRawMany();
+    // return validStatuses;
+    const groupedRequests = {
+      ...validStatuses.reduce((prev, item) => {
+        return { ...prev, [item.toLowerCase()]: 0 };
+      }, {}),
+    };
 
-    const groupedRequests = {};
     for (const item of result) {
       const status = item.status ? item.status.toLowerCase() : 'unknown';
-      groupedRequests[status] = item.count || 0;
+      groupedRequests[status] = item.count || 10;
     }
 
     return groupedRequests;
+  }
+
+  async getSPStats(user: User) {
+    try {
+      const validStatuses = Object.values(ServiceRequestStatus);
+      const queryBuilder =
+        this.serviceRequestProposalRepository.createQueryBuilder('p');
+      const result = await queryBuilder
+        .leftJoin('p.service_provider', 'sp')
+        .leftJoin('p.service_request', 'sr')
+        .where('sp.id = :id', { id: user.id })
+        .andWhere(`p.status IN (:...statuses)`, { statuses: validStatuses })
+        .groupBy('p.status')
+        .select('p.status as status')
+        .addSelect('COUNT(sr.id) as count')
+        .getRawMany();
+
+      // return result;
+      const groupedRequests = {
+        completed: 0,
+        inProgress: 0,
+        declined: 0,
+        pending: 0,
+      };
+      // return groupedRequests;
+
+      for (const item of result) {
+        const status = item.status.toLowerCase();
+        groupedRequests[status] = item.count;
+      }
+
+      return groupedRequests;
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
   }
 
   async findServiceRequestsByUserAndStatus(
@@ -234,6 +289,56 @@ export class ServiceRequestsService {
       queryBuilder.andWhere('sr.status = :status', { status });
     }
     return await paginate<ServiceRequest>(queryBuilder, { page, limit });
+  }
+
+  async findSPJobs(user: User, query: SPJobQueryDto): Promise<Pagination<any>> {
+    const { status, page, limit, start_date, end_date, date, service_type } =
+      query;
+    const qb = this.serviceRequestProposalRepository
+      .createQueryBuilder('p')
+      .leftJoinAndSelect('p.service_request', 'sr')
+      .leftJoinAndSelect('p.service_provider', 'sp')
+      .leftJoinAndSelect('sr.service_types', 'st')
+      .leftJoinAndSelect('sr.created_by', 'client')
+      .where('sp.id = :id', { id: user.id });
+    if (status) {
+      qb.andWhere('p.status = :status', { status });
+    }
+    if (service_type) {
+      qb.andWhere(`st.id = :serviceTypeId`, { serviceTypeId: service_type });
+    }
+
+    if (start_date && end_date) {
+      qb.andWhere(`sr.start_date BETWEEN :startDate AND :endDate`, {
+        start_date,
+        end_date,
+      });
+    } else if (date) {
+      qb.andWhere(`DATE(sr.start_date) = :date`, { date });
+    }
+    const res = await paginate<ServiceRequestProposal>(qb, {
+      page,
+      limit,
+    });
+    return {
+      ...res,
+      items: res.items.map((p) => ({
+        amount: p.proposal_amount,
+        description: p.service_request.description,
+        start_add: p.service_request.start_add,
+        start_date: p.service_request.start_date,
+        status: p.status,
+        service_request_types: p.service_request.service_types.map((i) => ({
+          name: i.name,
+          id: i.id,
+        })),
+        created_by: {
+          first_name: p.service_request.created_by.first_name,
+          last_name: p.service_request.created_by.last_name,
+          id: p.service_request.created_by.id,
+        },
+      })),
+    };
   }
 
   async sendServiceRequestInvites(
@@ -278,7 +383,7 @@ export class ServiceRequestsService {
 
       if (!newUsers.length) {
         throw new HttpException(
-          'Users have already been invited',
+          'Service providers have already been invited',
           HttpStatus.CONFLICT,
         );
       }
@@ -323,8 +428,10 @@ export class ServiceRequestsService {
         .leftJoinAndSelect('proposal.service_request', 'sr')
         .leftJoinAndSelect('sr.service_types', 'st')
         .leftJoinAndSelect('sr.created_by', 'created_by')
-        .where('sr.id = :id', { id: serviceRequestId })
-        .where('sp.id = :id', { id: serviceProviderId })
+        .where('sr.id = :serviceRequestId AND sp.id = :serviceProviderId', {
+          serviceRequestId,
+          serviceProviderId,
+        })
         .getOne();
       if (!proposal) {
         throw new NotFoundException(
@@ -336,13 +443,7 @@ export class ServiceRequestsService {
       throw new CatchErrorException(error);
     }
   }
-
-  async getProposalBySRSPClient(
-    serviceRequestId: string,
-    clientId: string,
-    serviceProviderId: string,
-  ) {
-    // SRSP == service request service provider
+  async getProposalById(proposalId: string) {
     try {
       const proposal = await this.serviceRequestProposalRepository
         .createQueryBuilder('proposal')
@@ -350,15 +451,8 @@ export class ServiceRequestsService {
         .leftJoinAndSelect('proposal.service_request', 'sr')
         .leftJoinAndSelect('sr.service_types', 'st')
         .leftJoinAndSelect('sr.created_by', 'created_by')
-        .where('sr.id = :id', { id: serviceRequestId })
-        .where('sp.id = :id', { id: serviceProviderId })
-        .where('created_by.id = :id', { id: clientId })
+        .where('proposal.id = :id', { id: proposalId })
         .getOne();
-      if (!proposal) {
-        throw new NotFoundException(
-          'Request not found for this service provider',
-        );
-      }
       return proposal;
     } catch (error) {
       throw new CatchErrorException(error);
@@ -458,13 +552,18 @@ export class ServiceRequestsService {
         );
       }
 
-      const proposal = await this.getProposalBySRSPClient(
+      const proposal = await this.getProposalBySRSP(
         serviceRequestId,
-        currentUser.id,
         service_provider_id,
       );
       const wallet = await this.walletService.getWalletBalance(currentUser);
 
+      if (!proposal.proposal_date) {
+        return new HttpException(
+          'Service provider have not sent proposal yet',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
       if (
         wallet.available_balance < proposal.proposal_amount
         // wallet.available_balance < proposal.proposal_amount
@@ -482,18 +581,27 @@ export class ServiceRequestsService {
         bal_after: balAfter,
         tnx_type: TransactionType.DEBIT,
         user: currentUser,
-        is_cleint: true,
+        is_client: true,
         is_sp: true,
       });
 
-      await this.walletService.updateWalletBalance(
-        currentUser,
-        balAfter,
-        proposal.proposal_amount,
-      );
-
       const serviceProvider = proposal.service_provider;
       const client = proposal.service_request.created_by;
+      await this.walletService.updateWalletBalance({
+        user: currentUser,
+        transactionType: TransactionType.DEBIT,
+        amount: proposal.proposal_amount,
+        description: 'Account is debited with and placed in escrow',
+        walletToUpdate: 'client',
+        escrow: proposal.amount,
+        sendNotification: true,
+        sendEmail: true,
+        client,
+        serviceProvider,
+        serviceRequest,
+        notificationType: NotificationType.ACCOUNT_DEBIT,
+      });
+
       proposal.proposal_accept_date = new Date();
       proposal.status = ServiceRequestStatus.PENDING;
       proposal.service_request = serviceRequest;
@@ -522,6 +630,7 @@ export class ServiceRequestsService {
         owner: serviceProvider,
       });
 
+      const delay = getMillisecondsDifference(serviceRequest.start_date);
       // send start proposal to queue
       await this.serviceRequestQueue.add(
         START_SERVICE_REQUEST_PROCESS,
@@ -529,11 +638,360 @@ export class ServiceRequestsService {
           proposalId: proposal.id,
           serviceRequestId: serviceRequest.id,
         },
-        { delay: 1000 },
+        { delay: delay },
       );
       return new ResponseMessage(
         'Service request proposal accepted successfully',
       );
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
+  }
+
+  async completeProposal(
+    currentUser: User,
+    serviceRequestId: string,
+    completeProposalDto: CompleteProposalDto,
+  ) {
+    const {
+      job_complete_note,
+      job_complete_file_1,
+      job_complete_file_2,
+      job_complete_file_3,
+      job_complete_file_4,
+      job_complete_file_5,
+      job_complete_file_6,
+    } = completeProposalDto;
+    const serviceRequest = await this.getServiceRequestById(serviceRequestId);
+    const proposal = await this.getProposalBySRSP(
+      serviceRequestId,
+      currentUser.id,
+    );
+
+    // check if proposal have been accepted by service provider
+    if (!proposal.proposal_accept_date) {
+      return new HttpException(
+        'You can only complete a service request that a client have accepted',
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    // check if proposal has started
+    if (proposal.status !== ServiceRequestStatus.IN_PROGRESS) {
+      return new HttpException(
+        'You can only complete a service request in progress',
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    const serviceProvider = proposal.service_provider;
+    const client = proposal.service_request.created_by;
+    proposal.proposal_accept_date = new Date();
+    proposal.status = ServiceRequestStatus.PENDING;
+    proposal.service_request = serviceRequest;
+    proposal.job_complete_note = job_complete_note;
+    proposal.job_complete_file_1 = job_complete_file_1;
+    proposal.job_complete_file_2 = job_complete_file_2;
+    proposal.job_complete_file_3 = job_complete_file_3;
+    proposal.job_complete_file_4 = job_complete_file_4;
+    proposal.job_complete_file_5 = job_complete_file_5;
+    proposal.job_complete_file_6 = job_complete_file_6;
+    serviceRequest.status = ServiceRequestStatus.COMPLETED;
+
+    await this.serviceRequestRepository.save({
+      ...serviceRequest,
+      status: ServiceRequestStatus.COMPLETED,
+    });
+    await this.serviceRequestProposalRepository.save(proposal);
+
+    //send Notification
+    await this.notificationService.sendNotification({
+      type: NotificationType.PROPOSAL_COMPLETE,
+      service_provider: serviceProvider,
+      service_request: serviceRequest,
+      subject: 'Service Request has been completed by Service provider',
+      owner: client,
+    });
+
+    //send sample email to client
+    await this.messagingService.sendEmail(
+      EmailTemplate.completeProposal({
+        serviceProvider: serviceProvider,
+        serviceRequest,
+        client,
+      }),
+    );
+
+    return new ResponseMessage('Service request have been marked as completed');
+  }
+
+  async startProposal(proposalId: string) {
+    try {
+      const proposal = await this.getProposalById(proposalId);
+      const serviceProvider = proposal.service_provider;
+      const serviceRequest = proposal.service_request;
+      const client = proposal.service_request.created_by;
+
+      // update status
+      proposal.status = ServiceRequestStatus.IN_PROGRESS;
+      serviceRequest.status = ServiceRequestStatus.IN_PROGRESS;
+      await this.serviceRequestRepository.save(serviceRequest);
+      await this.serviceRequestProposalRepository.save(proposal);
+
+      // send Notification
+      await this.notificationService.sendNotification({
+        type: NotificationType.PROPOSAL_COMPLETE,
+        service_provider: serviceProvider,
+        service_request: serviceRequest,
+        subject: 'Service Request has been started',
+        owner: serviceProvider,
+      });
+
+      //send sample email to client
+      await this.messagingService.sendEmail(
+        EmailTemplate.startProposal({
+          serviceProvider: serviceProvider,
+          serviceRequest,
+          client,
+        }),
+      );
+      return;
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
+  }
+
+  async raiseDispute(
+    serviceRequestId: string,
+    raiseDisputeDto: RaiseDisputeDto,
+  ) {
+    try {
+      const { service_provider_id, disputant, dispute_reason } =
+        raiseDisputeDto;
+      const proposal = await this.getProposalBySRSP(
+        serviceRequestId,
+        service_provider_id,
+      );
+      const serviceProvider = proposal.service_provider;
+      const serviceRequest = proposal.service_request;
+      const client = proposal.service_request.created_by;
+
+      const canDisputeStatuses = [
+        ServiceRequestStatus.IN_PROGRESS,
+        ServiceRequestStatus.COMPLETED,
+      ];
+      if (!canDisputeStatuses.includes(proposal.status)) {
+        throw new HttpException(
+          `You can only raise dispute on a service request in ${canDisputeStatuses
+            .map((i) => normalizeEnum(i))
+            .join(',')}`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const disputeQueue = await this.serviceRequestQueue.add(
+        RESOLVE_DISPUTE_PROCESS,
+        {
+          serviceRequestId,
+          resolveDisputeDto: {
+            disputant,
+            service_provider_id,
+            dispute_resolve_action:
+              disputant === Disputant.CLIENT
+                ? DisputeResolveAction.REFUND_CLIENT
+                : DisputeResolveAction.PAY_SERVICE_PROVIDER,
+            dispute_resolve_reason:
+              disputant === Disputant.CLIENT
+                ? 'System refunded client after no query'
+                : 'System paid service provider after no query',
+            resolver: DisputeResolver.SYSTEM_QUEUE,
+          },
+        },
+        { delay: 40000 },
+      );
+      proposal.dispute_status = DisputeStatus.IN_PROGRESS;
+      proposal.disputant = disputant;
+      proposal.dispute_queue_id = disputeQueue.id as any;
+      proposal.dispute_date = new Date();
+      proposal.dispute_reason = dispute_reason;
+      await this.serviceRequestProposalRepository.save(proposal);
+
+      // send Notification
+      await this.notificationService.sendNotification({
+        type: NotificationType.JOB_DISPUTE_RAISED,
+        service_provider: serviceProvider,
+        service_request: serviceRequest,
+        subject:
+          disputant === Disputant.SERVICE_PROVIDER
+            ? 'Service proposal has rasied a dispute about your completed service request'
+            : '',
+        owner:
+          disputant === Disputant.SERVICE_PROVIDER ? client : serviceProvider,
+      });
+
+      //send sample email to client
+      await this.messagingService.sendEmail(
+        EmailTemplate.raiseDispute({
+          serviceProvider: serviceProvider,
+          serviceRequest,
+          client,
+          disputant,
+          disputeReason: dispute_reason,
+        }),
+      );
+      return new ResponseMessage('Dispute successfully raised');
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
+  }
+
+  async resolveDispute(
+    serviceRequestId: string,
+    resolveDisputeDto: ResolveDisputeDto,
+  ) {
+    const {
+      disputant,
+      service_provider_id,
+      dispute_resolve_action,
+      dispute_resolve_reason,
+      resolver,
+    } = resolveDisputeDto;
+    const proposal = await this.getProposalBySRSP(
+      serviceRequestId,
+      service_provider_id,
+    );
+
+    if (proposal.dispute_status !== DisputeStatus.IN_PROGRESS) {
+      throw new HttpException(
+        'You cannot resolve settled dispute',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    proposal.dispute_resolve_date = new Date();
+    proposal.dispute_resolve_reason = dispute_resolve_reason;
+    proposal.dispute_resolve_action = dispute_resolve_action;
+    await this.serviceRequestProposalRepository.save(proposal);
+    if (resolver === DisputeResolver.ADMIN) {
+      const queueJob = await this.serviceRequestQueue.getJob(
+        proposal.dispute_queue_id,
+      );
+      if (queueJob) {
+        await queueJob.remove();
+      }
+    }
+
+    const serviceProvider = proposal.service_provider;
+    const serviceRequest = proposal.service_request;
+    const client = proposal.service_request.created_by;
+
+    // send notification
+    await this.notificationService.sendNotification({
+      type: NotificationType.JOB_DISPUTE_RESOLVED,
+      service_provider: serviceProvider,
+      service_request: serviceRequest,
+      subject: 'Dispute has been resolved',
+      disputant,
+      owner:
+        disputant === Disputant.SERVICE_PROVIDER ? client : serviceProvider,
+    });
+
+    //send sample email to client
+    await this.messagingService.sendEmail(
+      EmailTemplate.resolveDispute({
+        user: client,
+        serviceRequest,
+      }),
+    );
+
+    //send sample email to service provider
+    await this.messagingService.sendEmail(
+      EmailTemplate.resolveDispute({
+        user: serviceProvider,
+        serviceRequest,
+      }),
+    );
+
+    if (dispute_resolve_action === DisputeResolveAction.PAY_SERVICE_PROVIDER) {
+      await this.walletService.updateWalletBalance({
+        user: serviceProvider,
+        transactionType: TransactionType.CREDIT,
+        amount: proposal.proposal_amount,
+        description: 'Dispute has been resolved and amount has been credited',
+        walletToUpdate: 'sp',
+        escrow: 0,
+        sendNotification: true,
+        sendEmail: true,
+        client,
+        serviceProvider,
+        serviceRequest,
+        notificationType: NotificationType.ACCOUNT_CREDIT,
+      });
+      await this.walletService.updateWalletBalance({
+        user: client,
+        transactionType: TransactionType.DEBIT,
+        amount: 0,
+        description: 'Dispute resolved and service provider has been credited',
+        walletToUpdate: 'client',
+        escrow: -proposal.amount,
+        sendNotification: false,
+        sendEmail: false,
+        client,
+        serviceProvider,
+        serviceRequest,
+        notificationType: NotificationType.ACCOUNT_DEBIT,
+      });
+    }
+    if (dispute_resolve_action === DisputeResolveAction.REFUND_CLIENT) {
+      await this.walletService.updateWalletBalance({
+        user: client,
+        transactionType: TransactionType.CREDIT,
+        amount: proposal.amount,
+        description: 'Dispute resolved and your money has been refunded',
+        walletToUpdate: 'client',
+        escrow: -proposal.amount,
+        sendNotification: true,
+        sendEmail: true,
+        client,
+        serviceProvider,
+        serviceRequest,
+        notificationType: NotificationType.ACCOUNT_CREDIT,
+      });
+    }
+
+    return new ResponseMessage(
+      `Dispute successfully resolved in favor of ${normalizeEnum(disputant)}`,
+    );
+  }
+
+  async giveReview(giveReviewDto: GiveReviewDto) {
+    try {
+      const {
+        service_provider_id,
+        service_request_id,
+        star,
+        review,
+        reviewer,
+      } = giveReviewDto;
+
+      const proposal = await this.getProposalBySRSP(
+        service_request_id,
+        service_provider_id,
+      );
+
+      const rating = await this.ratingRepo.create({
+        // service_provider_id,
+        // service_request_id,
+        star,
+        review,
+        // sp: proposal.service_provider,
+        reviewer: proposal.service_request.created_by,
+      });
+      await this.ratingRepo.save(rating);
+      return await this.getProposalBySRSP(
+        service_request_id,
+        service_provider_id,
+      );
+      return new ResponseMessage('Service provider successfully reviewed');
     } catch (error) {
       throw new CatchErrorException(error);
     }

@@ -1,4 +1,4 @@
-import { PaginationQueryDto } from './../common/dto/pagination-query.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { WalletBalance } from './interfaces/wallet.interface';
 import {
   Body,
@@ -9,6 +9,7 @@ import {
   Param,
   Delete,
   HttpCode,
+  Query,
 } from '@nestjs/common';
 import { AddBankAccountDto } from './dto/add-bank-account.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guide';
@@ -41,7 +42,7 @@ export class WalletController {
   @HttpCode(200)
   async transaction(
     @CurrentUser() currentUser: User,
-    paginationQueryDto: PaginationQueryDto,
+    @Query() paginationQueryDto: PaginationQueryDto,
   ): PaginationResponse<Transaction> {
     return await this.walletService.transaction(
       currentUser,

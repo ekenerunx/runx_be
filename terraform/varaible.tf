@@ -2,6 +2,10 @@ variable "location" {
   default = "westus2"
 }
 
+variable "image_tag" {
+  description = "this tag is used to deploy the latest build"
+}
+
 
 variable "runx_env" {
   default = {

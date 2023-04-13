@@ -11,7 +11,7 @@ resource "azurerm_container_group" "aci" {
 
   container {
     name   = "nginx"
-    image  = "emmanuelekama/runx:latest"
+    image  = "emmanuelekama/runx:${var.image_tag}"
     cpu    = "0.5"
     memory = "1.5"
     ports {

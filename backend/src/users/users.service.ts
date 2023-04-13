@@ -1,10 +1,10 @@
-import { MessagingService } from './../messaging/messaging.service';
+import { MessagingService } from '../messaging/messaging.service';
 import { RequestPhoneVerificationDto } from './dto/request-phone-verification.dto';
 import { PatchUserDto } from './dto/patch-user.dto';
 import { ResetTransactionPinDto } from './dto/reset-transaction-pin.dto';
 import { CreateTransactionPinDto } from './dto/create-transaction-pin.dto';
 import { JwtService } from '@nestjs/jwt';
-import { VerificationCodeService } from './../verification-code/verification-code.service';
+import { VerificationCodeService } from '../verification-code/verification-code.service';
 import { ServiceTypesService } from 'src/services-types/service-types.service';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
