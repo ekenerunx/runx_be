@@ -6,6 +6,18 @@ variable "image_tag" {
   description = "this tag is used to deploy the latest build"
 }
 
+# variable "ARM_TENANT_ID" {
+
+# }
+# variable "ARM_CLIENT_SECRET" {
+
+# }
+# variable "ARM_CLIENT_ID" {
+
+# }
+# variable "ARM_SUBSCRIPTION_ID" {
+  
+# }
 
 variable "runx_env" {
   default = {
