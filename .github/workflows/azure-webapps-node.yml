@@ -22,7 +22,7 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      - fix/*
+      - fix-build
 
 env:
   IMAGE_NAME: emmanuelekama/runx
