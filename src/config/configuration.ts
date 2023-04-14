@@ -17,6 +17,7 @@ export default () => {
     REDIS_USERNAME,
     REDIS_PASSWORD,
     PAYSTACK_SECRET_KEY,
+    AZURE_STORAGE_CONNECTION_STRING,
   } = process.env;
   return {
     port: parseInt(PORT, 10) || 3000,
@@ -45,6 +46,11 @@ export default () => {
     },
     paymentProcessor: {
       secretKey: PAYSTACK_SECRET_KEY,
+    },
+    azure: {
+      storage: {
+        connectionString: AZURE_STORAGE_CONNECTION_STRING,
+      },
     },
   };
 };
