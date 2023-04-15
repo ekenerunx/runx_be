@@ -6,18 +6,18 @@ variable "image_tag" {
   description = "this tag is used to deploy the latest build"
 }
 
-# variable "ARM_TENANT_ID" {
+variable "ARM_TENANT_ID" {
 
-# }
-# variable "ARM_CLIENT_SECRET" {
+}
+variable "ARM_CLIENT_SECRET" {
 
-# }
-# variable "ARM_CLIENT_ID" {
+}
+variable "ARM_CLIENT_ID" {
 
-# }
-# variable "ARM_SUBSCRIPTION_ID" {
-  
-# }
+}
+variable "ARM_SUBSCRIPTION_ID" {
+
+}
 
 variable "runx_env" {
   default = {
@@ -40,3 +40,4 @@ variable "runx_env" {
     PAYSTACK_SECRET_KEY     = "sk_test_c13f4d0501916157cf87b0a843da9a6129a4dbcd"
   }
 }
+
