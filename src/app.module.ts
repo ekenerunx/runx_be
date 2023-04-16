@@ -21,6 +21,11 @@ import { Rating } from './entities/rating.entity';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage, memoryStorage } from 'multer';
 import { extname } from 'path';
+import { RatingModule } from './rating/rating.module';
+import { ServiceProviderModule } from './service-provider/service-provider.module';
+import { InviteModule } from './invite/invite.module';
+import { ClientModule } from './client/client.module';
+import { AdminModule } from './admin/admin.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
@@ -82,6 +87,11 @@ import { extname } from 'path';
     NotificationModule,
     PaymentProcessorModule,
     FileModule,
+    RatingModule,
+    ServiceProviderModule,
+    InviteModule,
+    ClientModule,
+    AdminModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: DatabaseExceptionFilter }],
 })
