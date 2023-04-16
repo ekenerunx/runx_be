@@ -70,9 +70,7 @@ export class UsersController {
       token: verificationToken,
     });
     await this.messagingService.sendEmail(template);
-    return {
-      message: 'Registration successfull verify email',
-    };
+    return new ResponseMessage('Registration successfull verify email');
   }
 
   @UseGuards(LocalAuthGuard)

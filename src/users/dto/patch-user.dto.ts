@@ -66,7 +66,7 @@ export class PatchUserDto {
 
   @IsNumber()
   @IsOptional()
-  price?: number;
+  amount_per_hour?: number;
 
   @IsString()
   @IsOptional()
@@ -79,10 +79,6 @@ export class PatchUserDto {
   @IsString()
   @IsOptional()
   loc_region?: string;
-
-  @IsString()
-  @IsOptional()
-  profession?: string;
 
   @IsString()
   @IsOptional()

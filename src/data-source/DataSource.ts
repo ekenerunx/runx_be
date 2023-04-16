@@ -1,11 +1,9 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
-import { ServiceType } from '@src/entities/service-type.entity';
 import { User } from '@src/entities/user.entity';
 
 dotenv.config();
-
 const {
   DATABASE_HOST,
   DATABASE_PORT,
@@ -22,6 +20,8 @@ export const AppDataSource = new DataSource({
   password: DATABASE_PASSWORD,
   database: DATABASE_NAME,
   subscribers: [],
-  entities: ['/entities/**/*{.js,.ts}', ServiceType, User],
+  entities: ['/entities/**/*{.js,.ts}', User],
   migrations: ['/db/migrations/**/*{.js,.ts}'],
 });
+
+AppDataSource.initialize();

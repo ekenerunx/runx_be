@@ -62,8 +62,8 @@ export class User {
   @Column({ nullable: true })
   bio: string;
 
-  @Column({ nullable: true })
-  avai_status: string;
+  @Column({ nullable: true, default: true })
+  avai_status: boolean;
 
   @Column({ nullable: true, default: false })
   is_verified: boolean;
@@ -112,9 +112,6 @@ export class User {
 
   @Column({ nullable: true })
   ver_doc: string;
-
-  @Column({ nullable: true })
-  profession: string;
 
   @Column({ nullable: true })
   amount_per_hour: number;

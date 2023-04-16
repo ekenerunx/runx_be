@@ -61,3 +61,12 @@ export const normalizeEnum = (enumString: string) => {
   if (!enumString) return;
   return enumString.split('_').join('');
 };
+
+export function getRandomNumberInRange(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+export function getRandomArrayItems(array, count = 5) {
+  const shuffled = array.sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
+}
