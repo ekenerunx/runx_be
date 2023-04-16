@@ -83,4 +83,8 @@ export class PatchUserDto {
   @IsString()
   @IsOptional()
   profession?: string;
+
+  @IsString()
+  @IsOptional()
+  photo_uri?: string;
 }
