@@ -84,28 +84,29 @@ jobs:
         run: |
           cd ./terraform
           ls
-          terraform init \
-          -var "IMAGE_TAG=latest" \
-          -var "ARM_TENANT_ID=$ARM_TENANT_ID" \
-          -var "ARM_CLIENT_SECRET=$ARM_CLIENT_SECRET" \
-          -var "ARM_CLIENT_ID=$ARM_CLIENT_ID" \
-          -var "ARM_SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID" \
-          -var "DATABASE_TYPE=$DATABASE_TYPE" \
-          -var "DATABASE_HOST=$DATABASE_HOST" \
-          -var "DATABASE_PORT=$DATABASE_PORT" \
-          -var "DATABASE_USERNAME=$DATABASE_USERNAME" \
-          -var "DATABASE_PASSWORD=$DATABASE_PASSWORD" \
-          -var "DATABASE_NAME=$DATABASE_NAME" \
-          -var "DATABASE_CONNECTION_URL=$DATABASE_CONNECTION_URL" \
-          -var "JWT_SECRET=$JWT_SECRET" \
-          -var "JWT_EXPIRE_IN=$JWT_EXPIRE_IN" \
-          -var "TERMII_API_KEY=$TERMII_API_KEY" \
-          -var "TERMII_SMS_FROM=$TERMII_SMS_FROM" \
-          -var "REDIS_HOST=$REDIS_HOST" \
-          -var "REDIS_PORT=$REDIS_PORT" \
-          -var "REDIS_USERNAME=$REDIS_USERNAME" \
-          -var "REDIS_PASSWORD=$REDIS_PASSWORD" \
-          -var "PAYSTACK_SECRET_KEY=$PAYSTACK_SECRET_KEY"
+          terraform init 
+          # \
+          # -var "IMAGE_TAG=latest" \
+          # -var "ARM_TENANT_ID=$ARM_TENANT_ID" \
+          # -var "ARM_CLIENT_SECRET=$ARM_CLIENT_SECRET" \
+          # -var "ARM_CLIENT_ID=$ARM_CLIENT_ID" \
+          # -var "ARM_SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID" \
+          # -var "DATABASE_TYPE=$DATABASE_TYPE" \
+          # -var "DATABASE_HOST=$DATABASE_HOST" \
+          # -var "DATABASE_PORT=$DATABASE_PORT" \
+          # -var "DATABASE_USERNAME=$DATABASE_USERNAME" \
+          # -var "DATABASE_PASSWORD=$DATABASE_PASSWORD" \
+          # -var "DATABASE_NAME=$DATABASE_NAME" \
+          # -var "DATABASE_CONNECTION_URL=$DATABASE_CONNECTION_URL" \
+          # -var "JWT_SECRET=$JWT_SECRET" \
+          # -var "JWT_EXPIRE_IN=$JWT_EXPIRE_IN" \
+          # -var "TERMII_API_KEY=$TERMII_API_KEY" \
+          # -var "TERMII_SMS_FROM=$TERMII_SMS_FROM" \
+          # -var "REDIS_HOST=$REDIS_HOST" \
+          # -var "REDIS_PORT=$REDIS_PORT" \
+          # -var "REDIS_USERNAME=$REDIS_USERNAME" \
+          # -var "REDIS_PASSWORD=$REDIS_PASSWORD" \
+          # -var "PAYSTACK_SECRET_KEY=$PAYSTACK_SECRET_KEY"
 
       # Checks that all Terraform configuration files adhere to a canonical format
       - name: Terraform Format
