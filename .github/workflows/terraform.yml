@@ -49,13 +49,13 @@ on:
     branches: ["fix-build"]
   # pull_request:
 env:
-  ARM_CLIENT_ID: ${{ variables.ARM_CLIENT_ID }}
-  ARM_CLIENT_SECRET: ${{ variables.ARM_CLIENT_SECRET }}
-  ARM_TENANT_ID: ${{ variables.ARM_TENANT_ID }}
-  ARM_SUBSCRIPTION_ID: ${{ variables.ARM_SUBSCRIPTION_ID }}
+  ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+  ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
 
-permissions:
-  contents: read
+# permissions:
+#   contents: read
 
 jobs:
   my-job:
