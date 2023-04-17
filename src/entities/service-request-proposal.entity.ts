@@ -1,5 +1,3 @@
-import { IsEnum } from 'class-validator';
-import { Rating } from './rating.entity';
 import {
   Disputant,
   DisputeResolveAction,
@@ -9,8 +7,10 @@ import {
 import { User } from 'src/entities/user.entity';
 import { ServiceRequest } from './service-request.entity';
 import {
+  AfterLoad,
   Column,
   Entity,
+  EntityManager,
   JoinColumn,
   ManyToOne,
   OneToMany,
@@ -18,6 +18,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { SharedEntity } from './shared.entity';
+import { AppDataSource } from 'src/db/data-source';
 
 @Entity()
 export class ServiceRequestProposal extends SharedEntity {
@@ -31,14 +32,6 @@ export class ServiceRequestProposal extends SharedEntity {
   @ManyToOne(() => User, (user) => user.service_request_proposals)
   @JoinColumn()
   service_provider: User;
-
-  @OneToOne(() => Rating)
-  @JoinColumn()
-  client_rating: Rating;
-
-  @OneToOne(() => Rating)
-  @JoinColumn()
-  service_provider_rating: Rating;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   invite_date: Date;

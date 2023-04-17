@@ -7,9 +7,9 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { Reviewer } from '../interfaces/service-requests.interface';
+import { Reviewer } from '../rating.interface';
 
-export class GiveReviewDto {
+export class CreateRatingDto {
   @IsUUID()
   service_provider_id: string;
 

@@ -31,7 +31,6 @@ import { startProposal } from 'src/common/email-template/start-proposal';
 import { RaiseDisputeDto } from './dto/raise-dispute.dto';
 import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
 import { SPJobQueryDto } from './dto/sp-job.query.dto';
-import { GiveReviewDto } from './dto/give-review.dto';
 
 @Controller('service-requests')
 export class ServiceRequestsController {
@@ -225,13 +224,5 @@ export class ServiceRequestsController {
       serviceRequestId,
       resolveDisputeDto,
     );
-  }
-
-  @Post('/give-review')
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRoles.SERVICE_PROVIDER)
-  @HttpCode(200)
-  async giveReview(@Body() giveReviewDto: GiveReviewDto) {
-    return await this.serviceRequestsService.giveReview(giveReviewDto);
   }
 }

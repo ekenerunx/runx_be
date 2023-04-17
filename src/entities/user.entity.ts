@@ -10,13 +10,19 @@ import {
   JoinTable,
   OneToMany,
   OneToOne,
+  AfterLoad,
+  BaseEntity,
 } from 'typeorm';
 import { Rating } from './rating.entity';
 import { BankAccount } from './bank-account.entity';
 import { Transaction } from './transaction.entity';
+import { Reviewer } from 'src/rating/rating.interface';
 
 @Entity()
-export class User {
+export class User extends BaseEntity {
+  constructor() {
+    super();
+  }
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -120,6 +126,9 @@ export class User {
   amount_per_hour: number;
 
   @Column({ nullable: true })
+  sp_average_rating: number;
+
+  @Column({ nullable: true })
   trnx_pin: string;
 
   // relations
@@ -153,4 +162,26 @@ export class User {
 
   @OneToMany(() => Transaction, (transaction) => transaction.user)
   transactions: Transaction[];
+
+  @OneToMany(() => Rating, (rating) => rating.created_by)
+  ratings: Rating[];
+
+  @AfterLoad()
+  computeRating() {
+    if (!this.ratings) return; // Ratings not loaded yet
+    const spRatings = this.ratings.filter(
+      (r) => r.reviewer === Reviewer.SERVICE_PROVIDER,
+    );
+    if (spRatings.length === 0) return; // No service provider ratings
+    let totalRating = 0;
+    for (let i = 0; i < spRatings.length; i++) {
+      totalRating += spRatings[i].star;
+    }
+    const averageRating = parseInt((totalRating / spRatings.length).toFixed(2));
+    this.sp_average_rating = averageRating;
+
+    //TODO:     // if (this.sp_average_rating !== averageRating) {
+    //   this.markAsDirty('sp_average_rating');
+    // }
+  }
 }

@@ -91,21 +91,30 @@ export class UsersService {
   }
 
   async getUserById(id: string) {
-    return await this.userRepository
-      .createQueryBuilder('user')
-      .leftJoinAndSelect('user.service_types', 'st')
-      .where('user.id = :id', { id })
-      .select(USER_FIELDS_TO_RETURN)
-      .getOne();
+    try {
+      return await this.userRepository
+        .createQueryBuilder('user')
+        .leftJoinAndSelect('user.service_types', 'st')
+        .leftJoinAndSelect('user.ratings', 'rating')
+        .where('user.id = :id', { id })
+        .select(USER_FIELDS_TO_RETURN)
+        .getOne();
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
   }
   async getUsersById(ids: string[]) {
-    return await this.userRepository
-      .createQueryBuilder('user')
-      .leftJoinAndSelect('user.service_types', 'st')
-      .whereInIds(ids)
-      // .andWhere('user.is_verified')
-      .select(USER_FIELDS_TO_RETURN)
-      .getMany();
+    try {
+      return await this.userRepository
+        .createQueryBuilder('user')
+        .leftJoinAndSelect('user.service_types', 'st')
+        .whereInIds(ids)
+        // .andWhere('user.is_verified')
+        .select(USER_FIELDS_TO_RETURN)
+        .getMany();
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
   }
 
   async deleteUserById(id: number) {
