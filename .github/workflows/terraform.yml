@@ -79,11 +79,11 @@ jobs:
         run: |
           cd backend
           ls
-          systemctl status docker
-      #     docker build -t $DOCKER_REGISTRY/$DOCKER_USERNAME/$IMAGE_NAME .
+          # systemctl status docker
+          docker build -t $DOCKER_REGISTRY/$DOCKER_USERNAME/$IMAGE_NAME .
 
-      # - name: Login to Docker registry
-      #   run: docker login $DOCKER_REGISTRY -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+      - name: Login to Docker registry
+        run: docker login $DOCKER_REGISTRY -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
 
       # - name: Push Docker image
       #   run: |
