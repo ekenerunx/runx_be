@@ -1,8 +1,8 @@
 
 resource "azurerm_container_group" "aci" {
   name                = "myaci"
-  location            = azurerm_resource_group.aci.location
-  resource_group_name = azurerm_resource_group.aci.name
+  location            = data.azurerm_resource_group.aci.location
+  resource_group_name = data.azurerm_resource_group.aci.name
   #   subnet_ids          = [azurerm_subnet.aci.id]
   ip_address_type = "Public"
 
