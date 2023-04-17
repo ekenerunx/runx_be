@@ -16,12 +16,16 @@ provider "azurerm" {
   # key                  = "prod.terraform.tfstate"
 }
 
-resource "azurerm_resource_group" "aci" {
-  # name     = "aci-resource-group"
-  name = var.resource_group_name
-  # location = var.location
-  location = "northcentralus"
+data "azurerm_resource_group" "aci" {
+  name = "rg-hello-azure-tf"
 }
+
+# resource "azurerm_resource_group" "aci" {
+#   # name     = "aci-resource-group"
+#   name = var.resource_group_name
+#   # location = var.location
+#   location = "northcentralus"
+# }
 
 
 
