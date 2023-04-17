@@ -119,6 +119,7 @@ jobs:
         run: |
           cd terraform
           terraform plan -var "image_tag=${{ github.sha }}"
+      # Generates an execution plan for Terraform
       - name: Terraform apply
         # id: plan
         run: |
