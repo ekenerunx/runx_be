@@ -1,4 +1,4 @@
-import { PaymentMethod } from '../wallet/interfaces/funding.interface';
+import { PaymentMethod } from './../wallet/interfaces/funding.interface';
 import { Entity, Column } from 'typeorm';
 import { SharedEntity } from './shared.entity';
 

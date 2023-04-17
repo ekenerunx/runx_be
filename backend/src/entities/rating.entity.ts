@@ -3,11 +3,11 @@ import {
   Column,
   PrimaryGeneratedColumn,
   ManyToOne,
-  OneToOne,
   JoinColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 import { ServiceRequestProposal } from './service-request-proposal.entity';
+import { Reviewer } from 'src/rating/rating.interface';
 
 @Entity()
 export class Rating {
@@ -23,9 +23,12 @@ export class Rating {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
 
-  @ManyToOne(() => User)
-  @JoinColumn({ name: 'reviewer_id' })
-  reviewer: User;
+  @ManyToOne(() => User, (user) => user.ratings)
+  @JoinColumn({ name: 'user_id' })
+  created_by: User;
+
+  @Column({ type: 'enum', enum: Reviewer, nullable: true })
+  reviewer: Reviewer;
 
   @ManyToOne(() => ServiceRequestProposal)
   @JoinColumn({ name: 'proposal_id' })

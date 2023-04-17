@@ -1,9 +1,9 @@
-import { MessagingModule } from '../messaging/messaging.module';
-import { ServiceTypesModule } from '../services-types/service-types.module';
+import { MessagingModule } from './../messaging/messaging.module';
+import { ServiceTypesModule } from './../services-types/service-types.module';
 import { VerificationCode } from 'src/entities/verification-code.entity';
 import { User } from 'src/entities/user.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { VerificationCodeService } from '../verification-code/verification-code.service';
+import { VerificationCodeService } from './../verification-code/verification-code.service';
 import { JwtService } from '@nestjs/jwt';
 import { Module } from '@nestjs/common';
 import { AuthService } from 'src/auth/auth.service';

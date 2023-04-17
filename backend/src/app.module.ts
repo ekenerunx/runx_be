@@ -18,6 +18,14 @@ import { Transaction } from './entities/transaction.entity';
 import { PaymentProcessorModule } from './payment-processor/payment-processor.module';
 import { FileModule } from './file/file.module';
 import { Rating } from './entities/rating.entity';
+import { MulterModule } from '@nestjs/platform-express';
+import { diskStorage, memoryStorage } from 'multer';
+import { extname } from 'path';
+import { RatingModule } from './rating/rating.module';
+import { ServiceProviderModule } from './service-provider/service-provider.module';
+import { InviteModule } from './invite/invite.module';
+import { ClientModule } from './client/client.module';
+import { AdminModule } from './admin/admin.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
@@ -56,6 +64,19 @@ import { Rating } from './entities/rating.entity';
       }),
       inject: [ConfigService],
     }),
+    // MulterModule.register({
+    //   storage: diskStorage({
+    //     destination: (req, file, cb) => {
+    //       cb(null, ''); // Set your desired destination folder here
+    //     },
+    //     filename: (req, file, cb) => {
+    //       cb(
+    //         null,
+    //         `${file.fieldname}-${Date.now()}${extname(file.originalname)}`,
+    //       );
+    //     },
+    //   }),
+    // }),
     AuthModule,
     MessagingModule,
     FileStorageModule,
@@ -66,6 +87,11 @@ import { Rating } from './entities/rating.entity';
     NotificationModule,
     PaymentProcessorModule,
     FileModule,
+    RatingModule,
+    ServiceProviderModule,
+    InviteModule,
+    ClientModule,
+    AdminModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: DatabaseExceptionFilter }],
 })

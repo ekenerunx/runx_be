@@ -1,10 +1,10 @@
-import { MessagingService } from '../messaging/messaging.service';
+import { MessagingService } from './../messaging/messaging.service';
 import { RequestPhoneVerificationDto } from './dto/request-phone-verification.dto';
 import { PatchUserDto } from './dto/patch-user.dto';
 import { ResetTransactionPinDto } from './dto/reset-transaction-pin.dto';
 import { CreateTransactionPinDto } from './dto/create-transaction-pin.dto';
 import { JwtService } from '@nestjs/jwt';
-import { VerificationCodeService } from '../verification-code/verification-code.service';
+import { VerificationCodeService } from './../verification-code/verification-code.service';
 import { ServiceTypesService } from 'src/services-types/service-types.service';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
@@ -35,6 +35,8 @@ import { resetTransactionPinMessage } from 'src/common/email-template/reset-trnx
 import { ListUserQueryDto } from './dto/list-users-query.dto';
 import { PaginationResponse } from 'src/common/interface';
 import { paginate } from 'nestjs-typeorm-paginate';
+import { ResponseMessage } from 'src/common/interface/success-message.interface';
+import { ToggleVisibilityDto } from './dto/toggle-visibility.dto';
 
 @Injectable()
 export class UsersService {
@@ -89,21 +91,30 @@ export class UsersService {
   }
 
   async getUserById(id: string) {
-    return await this.userRepository
-      .createQueryBuilder('user')
-      .leftJoinAndSelect('user.service_types', 'st')
-      .where('user.id = :id', { id })
-      .select(USER_FIELDS_TO_RETURN)
-      .getOne();
+    try {
+      return await this.userRepository
+        .createQueryBuilder('user')
+        .leftJoinAndSelect('user.service_types', 'st')
+        .leftJoinAndSelect('user.ratings', 'rating')
+        .where('user.id = :id', { id })
+        .select(USER_FIELDS_TO_RETURN)
+        .getOne();
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
   }
   async getUsersById(ids: string[]) {
-    return await this.userRepository
-      .createQueryBuilder('user')
-      .leftJoinAndSelect('user.service_types', 'st')
-      .whereInIds(ids)
-      // .andWhere('user.is_verified')
-      .select(USER_FIELDS_TO_RETURN)
-      .getMany();
+    try {
+      return await this.userRepository
+        .createQueryBuilder('user')
+        .leftJoinAndSelect('user.service_types', 'st')
+        .whereInIds(ids)
+        // .andWhere('user.is_verified')
+        .select(USER_FIELDS_TO_RETURN)
+        .getMany();
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
   }
 
   async deleteUserById(id: number) {
@@ -344,6 +355,15 @@ export class UsersService {
           HttpStatus.CONFLICT,
         );
       }
+      const checkExisting = await this.userRepository.findOne({
+        where: { phone_number },
+      });
+      if (checkExisting) {
+        throw new HttpException(
+          'Phone number already in use',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
       const user = await this.userRepository
         .createQueryBuilder('user')
         .where('user.id = :id', { id: currentUser.id })
@@ -355,9 +375,12 @@ export class UsersService {
         identifier: phone_number,
       });
       await this.userRepository.save(user);
-      return await this.messagingService.sendSMS(
+      await this.messagingService.sendSMS(
         phone_number,
         `Your verification code is: ${otp} expires in 20 minutes`,
+      );
+      return new ResponseMessage(
+        'Verifcation OTP has been sent to your phone number',
       );
     } catch (error) {
       throw new DatabaseException(error);
@@ -388,12 +411,13 @@ export class UsersService {
       user.phone_number = phone_number;
       await this.userRepository.save(user);
       await this.verificationCodeService.markAsUsed(otp.id);
-      return await this.messagingService.sendSMS(
+      await this.messagingService.sendSMS(
         phone_number,
         `Your phone number has been successfully verified`,
       );
+      return new ResponseMessage('Phone Number has been successfully verified');
     } catch (error) {
-      throw new DatabaseException(error);
+      throw new CatchErrorException(error);
     }
   }
 
@@ -423,6 +447,24 @@ export class UsersService {
           'user.is_admin',
         ]);
       return paginate<User>(queryBuilder, { limit, page });
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
+  }
+
+  async toggleVisibility(
+    currentUser: User,
+    toggleVisibilityDto: ToggleVisibilityDto,
+  ) {
+    try {
+      const { is_online } = toggleVisibilityDto;
+      const user = await this.userRepository.findOne({
+        where: { id: currentUser.id },
+      });
+      await this.userRepository.save({ ...user, is_online: is_online });
+      return new ResponseMessage(
+        `${is_online ? 'Online' : 'Offine'} successfully updated`,
+      );
     } catch (error) {
       throw new CatchErrorException(error);
     }

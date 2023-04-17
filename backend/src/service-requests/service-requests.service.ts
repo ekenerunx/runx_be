@@ -1,9 +1,9 @@
 import { CompleteProposalDto } from './dto/complete-proposal.dto';
 import { SendProposalDto } from './dto/send-proposal.dto';
-import { MessagingService } from '../messaging/messaging.service';
-import { NotificationService } from '../notification/notification.service';
-import { ServiceRequestProposal } from '../entities/service-request-proposal.entity';
-import { ServiceRequest } from '../entities/service-request.entity';
+import { MessagingService } from './../messaging/messaging.service';
+import { NotificationService } from './../notification/notification.service';
+import { ServiceRequestProposal } from './../entities/service-request-proposal.entity';
+import { ServiceRequest } from './../entities/service-request.entity';
 import { SendServiceRequestInvitationsDto } from './dto/send-service-request-invitation.dto';
 import {
   Disputant,
@@ -51,7 +51,6 @@ import { normalizeEnum } from 'src/common/utils';
 import { RaiseDisputeDto } from './dto/raise-dispute.dto';
 import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
 import { SPJobQueryDto } from './dto/sp-job.query.dto';
-import { GiveReviewDto } from './dto/give-review.dto';
 import { Rating } from 'src/entities/rating.entity';
 
 @Injectable()
@@ -961,39 +960,5 @@ export class ServiceRequestsService {
     return new ResponseMessage(
       `Dispute successfully resolved in favor of ${normalizeEnum(disputant)}`,
     );
-  }
-
-  async giveReview(giveReviewDto: GiveReviewDto) {
-    try {
-      const {
-        service_provider_id,
-        service_request_id,
-        star,
-        review,
-        reviewer,
-      } = giveReviewDto;
-
-      const proposal = await this.getProposalBySRSP(
-        service_request_id,
-        service_provider_id,
-      );
-
-      const rating = await this.ratingRepo.create({
-        // service_provider_id,
-        // service_request_id,
-        star,
-        review,
-        // sp: proposal.service_provider,
-        reviewer: proposal.service_request.created_by,
-      });
-      await this.ratingRepo.save(rating);
-      return await this.getProposalBySRSP(
-        service_request_id,
-        service_provider_id,
-      );
-      return new ResponseMessage('Service provider successfully reviewed');
-    } catch (error) {
-      throw new CatchErrorException(error);
-    }
   }
 }

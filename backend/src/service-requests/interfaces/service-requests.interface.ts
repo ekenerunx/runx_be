@@ -44,8 +44,3 @@ export enum DisputeResolveAction {
   'PAY_SERVICE_PROVIDER' = 'PAY_SERVICE_PROVIDER',
   'REFUND_CLIENT' = 'REFUND_CLIENT',
 }
-
-export enum Reviewer {
-  'CLIENT' = 'CLIENT',
-  'SERVICE_PROVIDER' = 'SERVICE_PROVIDER',
-}

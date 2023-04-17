@@ -1,7 +1,7 @@
 import { TransactionType } from 'src/wallet/interfaces/transaction.interface';
 import { PartialType } from '@nestjs/swagger';
 import { Repository } from 'typeorm';
-import { Transaction } from '../entities/transaction.entity';
+import { Transaction } from './../entities/transaction.entity';
 import {
   HttpException,
   HttpStatus,

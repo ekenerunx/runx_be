@@ -1,4 +1,4 @@
-import { UserRoles } from '../users/interfaces/user.interface';
+import { UserRoles } from './../users/interfaces/user.interface';
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
