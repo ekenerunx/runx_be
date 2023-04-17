@@ -6,6 +6,10 @@ variable "image_tag" {
   description = "this tag is used to deploy the latest build"
 }
 
+variable "resource_group_name" {
+  default = "dev-resource"
+}
+
 # variable "ARM_TENANT_ID" {
 
 # }
