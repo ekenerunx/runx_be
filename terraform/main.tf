@@ -18,7 +18,7 @@ provider "azurerm" {
 
 resource "azurerm_resource_group" "aci" {
   # name     = "aci-resource-group"
-  name = "rg-hello-azure-tf"
+  name = var.resource_group_name
   # location = var.location
   location = "northcentralus"
 }

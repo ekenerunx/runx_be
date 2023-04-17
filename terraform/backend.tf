@@ -7,7 +7,7 @@ terraform {
     }
   }
     backend "azurerm" {
-    resource_group_name  = "rg-hello-azure-tf"
+    resource_group_name  = var.resource_group_name
     storage_account_name = "sahelloazuretf123"
     container_name       = "terraform-state"
     key                  = "terraform.tfstate"
