@@ -124,6 +124,7 @@ jobs:
         id: plan
         run: |
           cd terraform
+          ls
           terraform apply -var "image_tag=${{ github.sha }}"
 
       #   # On push to "main", build or change infrastructure according to Terraform configuration files
