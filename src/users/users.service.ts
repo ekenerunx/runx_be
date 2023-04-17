@@ -37,6 +37,7 @@ import { PaginationResponse } from 'src/common/interface';
 import { paginate } from 'nestjs-typeorm-paginate';
 import { ResponseMessage } from 'src/common/interface/success-message.interface';
 import { ToggleVisibilityDto } from './dto/toggle-visibility.dto';
+import { generateAlphaNumeric } from 'src/common/utils';
 
 @Injectable()
 export class UsersService {
@@ -63,6 +64,12 @@ export class UsersService {
       is_client,
     } = registerUserDto;
     const hashedPassword = await Hash.encrypt(password);
+    const userExists = await this.findUserByEmail(email);
+
+    if (userExists) {
+      throw new HttpException('User already exist', HttpStatus.CONFLICT);
+    }
+    const uniqueId = await this.generateUserCode();
     const newUser: Partial<User> = {
       password,
       email,
@@ -72,13 +79,9 @@ export class UsersService {
       is_admin,
       is_client,
       is_sp,
+      unique_id: uniqueId,
     };
     newUser.password = hashedPassword;
-    const userExists = await this.findUserByEmail(email);
-
-    if (userExists) {
-      throw new HttpException('User already exist', HttpStatus.CONFLICT);
-    }
 
     if (is_sp) {
       const serviceTypes = await this.serviceTypesService.getServiceTypesByIds(
@@ -468,5 +471,17 @@ export class UsersService {
     } catch (error) {
       throw new CatchErrorException(error);
     }
+  }
+
+  async generateUserCode(): Promise<string> {
+    const code = generateAlphaNumeric();
+    const user = await this.userRepository.findOne({
+      where: { unique_id: code },
+    });
+    if (user) {
+      return generateAlphaNumeric();
+    }
+
+    return code;
   }
 }

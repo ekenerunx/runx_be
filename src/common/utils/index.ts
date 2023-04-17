@@ -61,3 +61,12 @@ export const normalizeEnum = (enumString: string) => {
   if (!enumString) return;
   return enumString.split('_').join('');
 };
+
+export const generateAlphaNumeric = (len = 6) => {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  for (let i = 0; i < len; i++) {
+    code += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+  }
+  return code;
+};

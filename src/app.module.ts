@@ -5,7 +5,6 @@ import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { MessagingModule } from './messaging/messaging.module';
-import { FileStorageModule } from './file-storage/file-storage.module';
 import configuration from './config/configuration';
 import { ServiceTypesModule } from './services-types/service-types.module';
 import { APP_FILTER } from '@nestjs/core';
@@ -79,7 +78,6 @@ import { AdminModule } from './admin/admin.module';
     // }),
     AuthModule,
     MessagingModule,
-    FileStorageModule,
     SystemModule,
     ServiceTypesModule,
     ServiceRequestsModule,

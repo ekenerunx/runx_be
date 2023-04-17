@@ -131,6 +131,9 @@ export class User extends BaseEntity {
   @Column({ nullable: true })
   trnx_pin: string;
 
+  @Column({ nullable: true })
+  unique_id: string;
+
   // relations
   @ManyToMany(() => ServiceType)
   @JoinTable()
