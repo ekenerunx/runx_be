@@ -69,10 +69,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Install Docker
+        run: |
+          systemctl status docker
+          sudo apt-get update
+          sudo apt-get install -y docker.io
+
       - name: Build Docker image
         run: |
           cd backend
           ls
+          systemctl status docker
       #     docker build -t $DOCKER_REGISTRY/$DOCKER_USERNAME/$IMAGE_NAME .
 
       # - name: Login to Docker registry
