@@ -8,6 +8,8 @@ FROM node:16.19-alpine AS development
 
 WORKDIR /usr/src/app
 
+RUN ls
+
 COPY package*.json ./
 
 RUN npm install glob rimraf
