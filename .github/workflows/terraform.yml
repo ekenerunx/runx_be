@@ -73,16 +73,16 @@ jobs:
         run: |
           cd backend
           ls
-          docker build -t $DOCKER_REGISTRY/$DOCKER_USERNAME/$IMAGE_NAME .
+      #     docker build -t $DOCKER_REGISTRY/$DOCKER_USERNAME/$IMAGE_NAME .
 
-      - name: Login to Docker registry
-        run: docker login $DOCKER_REGISTRY -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+      # - name: Login to Docker registry
+      #   run: docker login $DOCKER_REGISTRY -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
 
-      - name: Push Docker image
-        run: |
-          cd backend
-          ls
-          docker push $DOCKER_REGISTRY/$DOCKER_USERNAME/$IMAGE_NAME
+      # - name: Push Docker image
+      #   run: |
+      #     cd backend
+      #     ls
+      #     docker push $DOCKER_REGISTRY/$DOCKER_USERNAME/$IMAGE_NAME
   # build-and-deploy:
   #   runs-on: ubuntu-latest
 
