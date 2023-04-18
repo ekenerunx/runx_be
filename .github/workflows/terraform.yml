@@ -63,56 +63,29 @@ permissions:
   contents: read
 
 jobs:
-  build_and_push:
+  build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+      - name: list directory
+        run: ls
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-      # - name: Install Docker
-      #   run: |
-      #     systemctl status docker
-      #     sudo apt-get update
-      #     sudo apt-get install -y docker.io
-
-      - name: Build Docker image
-        run: |
-          cd backend
-          ls
-          # systemctl status docker
-          docker build -t $DOCKER_REGISTRY/$DOCKER_USERNAME/$IMAGE_NAME -f dockerfile.dev .
-
-      - name: Login to Docker registry
-        run: docker login $DOCKER_REGISTRY -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-
-      # - name: Push Docker image
-      #   run: |
-      #     cd backend
-      #     ls
-      #     docker push $DOCKER_REGISTRY/$DOCKER_USERNAME/$IMAGE_NAME
-  # build-and-deploy:
-  #   runs-on: ubuntu-latest
-
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v2
-  #     - name: list directory
-  #       run: ls
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v1
-  #       with:
-  #         username: ${{ secrets.DOCKERHUB_USERNAME }}
-  #         password: ${{ secrets.DOCKERHUB_PASSWORD }}
-
-  #     - name: print file
-  #       run: ls
-  #     - name: Build and push Docker image
-  #       uses: docker/build-push-action@v2
-  #       with:
-  #         context: .
-  #         file: ./backend/
-  #         push: true
-  #         tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+      - name: print file
+        run: ls
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./backend/dockerfile.dev
+          push: true
+          tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
   # terraform:
   #   name: "Terraform"
   #   runs-on: ubuntu-latest
