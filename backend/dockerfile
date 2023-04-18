@@ -2,7 +2,9 @@ FROM redis:alpine3.17
 
 RUN whereis redis.conf
 
-COPY redis.conf /usr/local/etc/redis/redis.conf
+# COPY redis.conf /usr/local/etc/redis/redis.conf
+COPY /home/user/config/redis.conf /usr/local/etc/redis/redis.conf
+
 
 CMD [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
 
