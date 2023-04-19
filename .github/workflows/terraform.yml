@@ -87,6 +87,7 @@ jobs:
           file: ./backend/dockerfile.dev
           push: true
           tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
   terraform:
     name: "Terraform"
     runs-on: ubuntu-latest
