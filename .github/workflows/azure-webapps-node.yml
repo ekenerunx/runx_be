@@ -1,55 +1,95 @@
-# This workflow will build and push a node.js application to an Azure Web App when a commit is pushed to your default branch.
+# This workflow installs the latest version of Terraform CLI and configures the Terraform CLI configuration file
+# with an API token for Terraform Cloud (app.terraform.io). On pull request events, this workflow will run
+# `terraform init`, `terraform fmt`, and `terraform plan` (speculative plan via Terraform Cloud). On push events
+# to the "main" branch, `terraform apply` will be executed.
 #
-# This workflow assumes you have already created the target Azure App Service web app.
-# For instructions see https://docs.microsoft.com/en-us/azure/app-service/quickstart-nodejs?tabs=linux&pivots=development-environment-cli
+# Documentation for `hashicorp/setup-terraform` is located here: https://github.com/hashicorp/setup-terraform
 #
-# To configure this workflow:
+# To use this workflow, you will need to complete the following setup steps.
 #
-# 1. Download the Publish Profile for your Azure Web App. You can download this file from the Overview page of your Web App in the Azure Portal.
-#    For more information: https://docs.microsoft.com/en-us/azure/app-service/deploy-github-actions?tabs=applevel#generate-deployment-credentials
+# 1. Create a `main.tf` file in the root of this repository with the `remote` backend and one or more resources defined.
+#   Example `main.tf`:
+#     # The configuration for the `remote` backend.
+#     terraform {
+#       backend "remote" {
+#         # The name of your Terraform Cloud organization.
+#         organization = "example-organization"
 #
-# 2. Create a secret in your repository named AZURE_WEBAPP_PUBLISH_PROFILE, paste the publish profile contents as the value of the secret.
-#    For instructions on obtaining the publish profile see: https://docs.microsoft.com/azure/app-service/deploy-github-actions#configure-the-github-secret
+#         # The name of the Terraform Cloud workspace to store Terraform state files in.
+#         workspaces {
+#           name = "example-workspace"
+#         }
+#       }
+#     }
 #
-# 3. Change the value for the AZURE_WEBAPP_NAME. Optionally, change the AZURE_WEBAPP_PACKAGE_PATH and NODE_VERSION environment variables below.
+#     # An example resource that does nothing.
+#     resource "null_resource" "example" {
+#       triggers = {
+#         value = "A example resource that does nothing!"
+#       }
+#     }
 #
-# For more information on GitHub Actions for Azure: https://github.com/Azure/Actions
-# For more information on the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# For more samples to get started with GitHub Action workflows to deploy to Azure: https://github.com/Azure/actions-workflow-samples
+#
+# 2. Generate a Terraform Cloud user API token and store it as a GitHub secret (e.g. TF_API_TOKEN) on this repository.
+#   Documentation:
+#     - https://www.terraform.io/docs/cloud/users-teams-organizations/api-tokens.html
+#     - https://help.github.com/en/actions/configuring-and-managing-workflows/creating-and-storing-encrypted-secrets
+#
+# 3. Reference the GitHub secret in step using the `hashicorp/setup-terraform` GitHub Action.
+#   Example:
+#     - name: Setup Terraform
+#       uses: hashicorp/setup-terraform@v1
+#       with:
+#         cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
-# name: CI/CD Pipeline
+name: "backend testing env"
 
-# on:
-#   push:
-#     branches:
-#       - fix-build
+on:
+  push:
+  pull_request:
+    branches: ["fix*"]
+env:
+  ARM_CLIENT_ID: fbd33fd9-207f-41df-865b-c1def1963244
+  ARM_CLIENT_SECRET: csf8Q~gbtxHYsK5GKHHwq3ILVLrz9YviSkzkraTM
+  ARM_TENANT_ID: d4089321-fbce-468b-b16b-b3cc8e265717
+  ARM_SUBSCRIPTION_ID: 5524a9f3-2588-4778-b99c-618dd11ae068
+  IMAGE_NAME: emmanuelekama/runx
+  # IMAGE_NAME: my-docker-image
+  DOCKER_REGISTRY: docker.io
+  DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-# env:
-#   IMAGE_NAME: emmanuelekama/runx
+permissions:
+  contents: read
 
-# jobs:
-#   build-and-deploy:
-#     runs-on: ubuntu-latest
+jobs:
+  build-image-store:
+    runs-on: ubuntu-latest
+    steps:
+      - name: shell
+        run: echo "working"
+      # - name: Checkout code
+      #   uses: actions/checkout@v2
+      # - name: list directory
+      #   run: ls
+      # - name: Login to Docker Hub
+      #   uses: docker/login-action@v1
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v2
-#       - name: list directory
-#         run: ls
-# - name: Login to Docker Hub
-#   uses: docker/login-action@v1
-#   with:
-#     username: ${{ secrets.DOCKERHUB_USERNAME }}
-#     password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      # - name: print file
+      #   run: ls
+      # - name: Build and push Docker image
+      #   uses: docker/build-push-action@v2
+      #   with:
+      #     context: .
+      #     file: ./backend/dockerfile.dev
+      #     push: true
+      #     tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-# - name: Build and push Docker image
-#   uses: docker/build-push-action@v2
-#   with:
-#     context: .
-#     file: ./backend/dockerfile.dev
-#     push: true
-#     tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
-
-# - name: Terraform Apply
-#   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-#   run: terraform apply -auto-approve -input=false -var "image_tag=${{ github.sha }}" ./terraform
+  #   # On push to "main", build or change infrastructure according to Terraform configuration files
+  #   # Note: It is recommended to set up a required "strict" status check in your repository for "Terraform Cloud". See the documentation on "strict" required status checks for more information: https://help.github.com/en/github/administering-a-repository/types-of-required-status-checks
+  # # - name: Terraform Apply
+  # #   if: github.ref == 'refs/heads/"main"' && github.event_name == 'push'
+  # #   run: terraform apply -auto-approve -input=false
