@@ -69,21 +69,22 @@ jobs:
     steps:
       - name: install dependency
         run: |
+          ls
           cd backend
           npm install
       # - name: Checkout code
       - name: build backend
         run: |
-          cd backend
+          # cd backend
           npm build
 
       - name: backend test coverage
         run: |
-          cd backend
+          # cd backend
           npm test:cov
       - name: build backend
         run: |
-          cd backend
+          # cd backend
           echo "running test..."
 
   commit_to_staging:

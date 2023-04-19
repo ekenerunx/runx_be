@@ -46,7 +46,7 @@ name: "shagging env"
 
 on:
   push:
-  pull_request:
+    # pull_request:
     branches: ["staging"]
 env:
   ARM_CLIENT_ID: fbd33fd9-207f-41df-865b-c1def1963244
