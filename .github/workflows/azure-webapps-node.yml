@@ -78,12 +78,12 @@ jobs:
       - name: build backend
         run: |
           cd backend
-          npm build
+          npm run build
 
       - name: backend test coverage
         run: |
           cd backend
-          npm test:cov
+          npm run test:cov
       - name: build backend
         run: |
           cd backend
