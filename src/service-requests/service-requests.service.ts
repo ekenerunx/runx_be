@@ -98,6 +98,7 @@ export class ServiceRequestsService {
       throw new CatchErrorException(error);
     }
   }
+
   async patchServiceRequest(
     id: string,
     patchServiceRequestDto: PatchServiceRequestDto,
@@ -205,11 +206,9 @@ export class ServiceRequestsService {
     //   queryBuilder.andWhere('sp.average_rating = :rating', { rating: rating });
     // }
 
-    // if (profile_pic) {
-    //   queryBuilder.andWhere('user.profile_pic = :profile_pic', {
-    //     profile_pic: profile_pic,
-    //   });
-    // }
+    if (profile_pic) {
+      queryBuilder.andWhere('user.photo_uri');
+    }
 
     return await paginate<Partial<User>>(queryBuilder, { page, limit });
   }
@@ -239,41 +238,6 @@ export class ServiceRequestsService {
     return groupedRequests;
   }
 
-  async getSPStats(user: User) {
-    try {
-      const validStatuses = Object.values(ServiceRequestStatus);
-      const queryBuilder =
-        this.serviceRequestProposalRepository.createQueryBuilder('p');
-      const result = await queryBuilder
-        .leftJoin('p.service_provider', 'sp')
-        .leftJoin('p.service_request', 'sr')
-        .where('sp.id = :id', { id: user.id })
-        .andWhere(`p.status IN (:...statuses)`, { statuses: validStatuses })
-        .groupBy('p.status')
-        .select('p.status as status')
-        .addSelect('COUNT(sr.id) as count')
-        .getRawMany();
-
-      // return result;
-      const groupedRequests = {
-        completed: 0,
-        inProgress: 0,
-        declined: 0,
-        pending: 0,
-      };
-      // return groupedRequests;
-
-      for (const item of result) {
-        const status = item.status.toLowerCase();
-        groupedRequests[status] = item.count;
-      }
-
-      return groupedRequests;
-    } catch (error) {
-      throw new CatchErrorException(error);
-    }
-  }
-
   async findServiceRequestsByUserAndStatus(
     user: User,
     query: ClientServiceRequestQueryDto,
@@ -288,56 +252,6 @@ export class ServiceRequestsService {
       queryBuilder.andWhere('sr.status = :status', { status });
     }
     return await paginate<ServiceRequest>(queryBuilder, { page, limit });
-  }
-
-  async findSPJobs(user: User, query: SPJobQueryDto): Promise<Pagination<any>> {
-    const { status, page, limit, start_date, end_date, date, service_type } =
-      query;
-    const qb = this.serviceRequestProposalRepository
-      .createQueryBuilder('p')
-      .leftJoinAndSelect('p.service_request', 'sr')
-      .leftJoinAndSelect('p.service_provider', 'sp')
-      .leftJoinAndSelect('sr.service_types', 'st')
-      .leftJoinAndSelect('sr.created_by', 'client')
-      .where('sp.id = :id', { id: user.id });
-    if (status) {
-      qb.andWhere('p.status = :status', { status });
-    }
-    if (service_type) {
-      qb.andWhere(`st.id = :serviceTypeId`, { serviceTypeId: service_type });
-    }
-
-    if (start_date && end_date) {
-      qb.andWhere(`sr.start_date BETWEEN :startDate AND :endDate`, {
-        start_date,
-        end_date,
-      });
-    } else if (date) {
-      qb.andWhere(`DATE(sr.start_date) = :date`, { date });
-    }
-    const res = await paginate<ServiceRequestProposal>(qb, {
-      page,
-      limit,
-    });
-    return {
-      ...res,
-      items: res.items.map((p) => ({
-        amount: p.proposal_amount,
-        description: p.service_request.description,
-        start_add: p.service_request.start_add,
-        start_date: p.service_request.start_date,
-        status: p.status,
-        service_request_types: p.service_request.service_types.map((i) => ({
-          name: i.name,
-          id: i.id,
-        })),
-        created_by: {
-          first_name: p.service_request.created_by.first_name,
-          last_name: p.service_request.created_by.last_name,
-          id: p.service_request.created_by.id,
-        },
-      })),
-    };
   }
 
   async sendServiceRequestInvites(

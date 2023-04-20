@@ -83,13 +83,6 @@ export class ServiceRequestsController {
     return await this.serviceRequestsService.getClientStats(user);
   }
 
-  @Get('sp/stats')
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRoles.SERVICE_PROVIDER)
-  async getSPStat(@CurrentUser() user: User) {
-    return await this.serviceRequestsService.getSPStats(user);
-  }
-
   @Get('/id/:serviceRequestId/service-providers')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRoles.CLIENT)
@@ -115,15 +108,6 @@ export class ServiceRequestsController {
       user,
       query,
     );
-  }
-  @Get('/sp/jobs')
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRoles.SERVICE_PROVIDER)
-  async getSPJobs(
-    @CurrentUser() user: User,
-    @Query() query: SPJobQueryDto,
-  ): Promise<Pagination<ServiceRequest>> {
-    return await this.serviceRequestsService.findSPJobs(user, query);
   }
 
   @Post('/id/:serviceRequestId/send-invites')
