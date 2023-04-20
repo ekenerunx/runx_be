@@ -9,6 +9,7 @@ import { User } from 'src/entities/user.entity';
 import { RoleGuard } from 'src/guards/role.guard';
 import { SPJobQueryDto } from 'src/service-requests/dto/sp-job.query.dto';
 import { UserRoles } from 'src/users/interfaces/user.interface';
+import { ApiResponse } from '@nestjs/swagger';
 
 @Controller('sp')
 export class ServiceProviderController {

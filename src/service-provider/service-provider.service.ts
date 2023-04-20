@@ -7,6 +7,7 @@ import { CatchErrorException } from 'src/exceptions';
 import { SPJobQueryDto } from 'src/service-requests/dto/sp-job.query.dto';
 import { ServiceRequestStatus } from 'src/service-requests/interfaces/service-requests.interface';
 import { Repository } from 'typeorm';
+import { stripJob } from './service-provider.util';
 
 @Injectable()
 export class ServiceProviderService {
@@ -99,14 +100,65 @@ export class ServiceProviderService {
       throw new CatchErrorException(error);
     }
   }
-
   async jobOverview(currentUser: User) {
-    const overview = {
-      today: {
-        data: [],
-        count: 0,
-      },
-    };
-    return overview;
+    try {
+      const queryBuilder = this.proposalRepo.createQueryBuilder('p');
+      const qb = await queryBuilder
+        .leftJoinAndSelect('p.service_provider', 'sp')
+        .leftJoinAndSelect('p.service_request', 'sr')
+        .leftJoinAndSelect('sr.created_by', 'created_by')
+        .where('sp.id = :id', { id: currentUser.id });
+
+      const inProgress = await qb
+        .andWhere(`p.status = :status`, {
+          status: ServiceRequestStatus.IN_PROGRESS,
+        })
+        .getManyAndCount();
+      const pending = await qb
+        .andWhere(`p.status = :status`, {
+          status: ServiceRequestStatus.PENDING,
+        })
+        .getManyAndCount();
+      const invited = await qb
+        .andWhere(`p.status = :status`, {
+          status: ServiceRequestStatus.INVITED,
+        })
+        .getManyAndCount();
+
+      const today = new Date();
+      const todayStart = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+      );
+      const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000 - 1);
+      const todaySchedule = await qb
+        .where(`p.proposal_date BETWEEN :start AND :end`, {
+          start: todayStart,
+          end: todayEnd,
+        })
+        .getManyAndCount();
+
+      return {
+        todaySchedule: {
+          count: todaySchedule[1],
+          data: todaySchedule[0]?.map((i) => stripJob(i)) || [],
+        },
+        inProgress: {
+          count: inProgress[1],
+          data: inProgress[0]?.map((i) => stripJob(i)) || [],
+        },
+        invited: {
+          count: invited[1],
+          data: invited[0]?.map((i) => stripJob(i)) || [],
+        },
+        pending: {
+          count: pending[1],
+          data: pending[0]?.map((i) => stripJob(i)) || [],
+        },
+      };
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
   }
 }
