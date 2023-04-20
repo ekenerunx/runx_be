@@ -1,8 +1,7 @@
-import { SendProposalDto } from './dto/send-proposal.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guide';
 import { User } from 'src/entities/user.entity';
-import { UserRoles } from './../users/interfaces/user.interface';
-import { RoleGuard } from './../guards/role.guard';
+import { UserRoles } from '../users/interfaces/user.interface';
+import { RoleGuard } from '../guards/role.guard';
 import {
   Controller,
   Get,
@@ -10,12 +9,11 @@ import {
   Body,
   Patch,
   Param,
-  Delete,
   UseGuards,
   Query,
   HttpCode,
 } from '@nestjs/common';
-import { ServiceRequestsService } from './service-requests.service';
+import { ServiceRequestService } from './service-request.service';
 import { CreateServiceRequestDto } from './dto/create-service-request.dto';
 import { Roles } from 'src/decorators/roles.decorator';
 import { CurrentUser } from 'src/decorators/current-user.decorator';
@@ -23,20 +21,13 @@ import { SRSPQueryDto } from './dto/sr-sp.dto';
 import { ClientServiceRequestQueryDto } from './dto/client-service-request.dto';
 import { Pagination } from 'nestjs-typeorm-paginate';
 import { ServiceRequest } from 'src/entities/service-request.entity';
-import { SendServiceRequestInvitationsDto } from './dto/send-service-request-invitation.dto';
 import { PatchServiceRequestDto } from './dto/patch-service-request.dto';
-import { AcceptProposalDto } from './dto/accept-proposal.dto';
-import { CompleteProposalDto } from './dto/complete-proposal.dto';
-import { startProposal } from 'src/common/email-template/start-proposal';
 import { RaiseDisputeDto } from './dto/raise-dispute.dto';
 import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
-import { SPJobQueryDto } from './dto/sp-job.query.dto';
 
 @Controller('service-requests')
-export class ServiceRequestsController {
-  constructor(
-    private readonly serviceRequestsService: ServiceRequestsService,
-  ) {}
+export class ServiceRequestController {
+  constructor(private readonly serviceRequestsService: ServiceRequestService) {}
 
   @Post('create')
   @UseGuards(JwtAuthGuard, RoleGuard)
@@ -108,76 +99,6 @@ export class ServiceRequestsController {
       user,
       query,
     );
-  }
-
-  @Post('/id/:serviceRequestId/send-invites')
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRoles.CLIENT)
-  async sendServiceRequestInvites(
-    @CurrentUser() currentUser: User,
-    @Param('serviceRequestId') serviceRequestId: string,
-    @Body() sendServiceRequestInvitaionsDto: SendServiceRequestInvitationsDto,
-  ) {
-    return await this.serviceRequestsService.sendServiceRequestInvites(
-      currentUser,
-      serviceRequestId,
-      sendServiceRequestInvitaionsDto,
-    );
-  }
-
-  @Post('/id/:serviceRequestId/send-proposal')
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRoles.SERVICE_PROVIDER)
-  async sendProposal(
-    @CurrentUser() currentUser: User,
-    @Body() sendProposalDto: SendProposalDto,
-    @Param('serviceRequestId') serviceRequestId: string,
-  ) {
-    return await this.serviceRequestsService.sendProposal(
-      currentUser,
-      serviceRequestId,
-      sendProposalDto,
-    );
-  }
-
-  @Post('/id/:serviceRequestId/accept-proposal')
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRoles.CLIENT)
-  @HttpCode(200)
-  async acceptProposal(
-    @CurrentUser() currentUser: User,
-    @Body() acceptProposalDto: AcceptProposalDto,
-    @Param('serviceRequestId') serviceRequestId: string,
-  ) {
-    return await this.serviceRequestsService.acceptProposal(
-      currentUser,
-      serviceRequestId,
-      acceptProposalDto,
-    );
-  }
-
-  @Post('/id/:serviceRequestId/complete-proposal')
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRoles.SERVICE_PROVIDER)
-  @HttpCode(200)
-  async completeProposal(
-    @CurrentUser() currentUser: User,
-    @Body() completeProposalDto: CompleteProposalDto,
-    @Param('serviceRequestId') serviceRequestId: string,
-  ) {
-    return await this.serviceRequestsService.completeProposal(
-      currentUser,
-      serviceRequestId,
-      completeProposalDto,
-    );
-  }
-
-  @Post('/proposal/:proposalId/start-proposal')
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  // @Roles(UserRoles.CLIENT)
-  @HttpCode(200)
-  async startProposal(@Param('proposalId') proposalId: string) {
-    return await this.serviceRequestsService.startProposal(proposalId);
   }
 
   @Post('/id/:serviceRequestId/raise-dispute')

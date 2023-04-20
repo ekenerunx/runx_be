@@ -5,7 +5,7 @@ import { CurrentUser } from 'src/decorators/current-user.decorator';
 import { Roles } from 'src/decorators/roles.decorator';
 import { User } from 'src/entities/user.entity';
 import { RoleGuard } from 'src/guards/role.guard';
-import { SendServiceRequestInvitationsDto } from 'src/service-requests/dto/send-service-request-invitation.dto';
+import { SendServiceRequestInvitationsDto } from 'src/service-request/dto/send-service-request-invitation.dto';
 import { UserRoles } from 'src/users/interfaces/user.interface';
 
 @Controller('invite')

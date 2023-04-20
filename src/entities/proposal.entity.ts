@@ -3,25 +3,21 @@ import {
   DisputeResolveAction,
   DisputeStatus,
   ServiceRequestStatus,
-} from './../service-requests/interfaces/service-requests.interface';
+} from '../service-request/interfaces/service-requests.interface';
 import { User } from 'src/entities/user.entity';
 import { ServiceRequest } from './service-request.entity';
 import {
-  AfterLoad,
   Column,
   Entity,
-  EntityManager,
   JoinColumn,
   ManyToOne,
-  OneToMany,
-  OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { SharedEntity } from './shared.entity';
 import { AppDataSource } from 'src/db/data-source';
 
 @Entity()
-export class ServiceRequestProposal extends SharedEntity {
+export class Proposal extends SharedEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

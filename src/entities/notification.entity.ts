@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 import { User } from './user.entity';
 import { ServiceRequest } from './service-request.entity';
-import { Disputant } from 'src/service-requests/interfaces/service-requests.interface';
+import { Disputant } from 'src/service-request/interfaces/service-requests.interface';
 
 @Entity()
 export class Notification {

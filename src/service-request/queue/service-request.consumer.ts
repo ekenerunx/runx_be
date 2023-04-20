@@ -10,18 +10,20 @@ import {
   ResolveDisputeQueueProcess,
   StartServiceRequestJob,
 } from '../interfaces/service-requests.interface';
-import { ServiceRequestsService } from '../service-requests.service';
+import { ServiceRequestService } from '../service-request.service';
+import { ProposalService } from 'src/proposal/proposal.service';
 
 @Processor(SERVICE_REQUEST_QUEUE)
 export class ServiceRequestConsumer {
   constructor(
-    private readonly serviceRequestsService: ServiceRequestsService,
+    private readonly serviceRequestsService: ServiceRequestService,
+    private readonly proposalService: ProposalService,
   ) {}
   private readonly logger = new Logger(ServiceRequestConsumer.name);
 
   @Process(START_SERVICE_REQUEST_PROCESS)
   async startServiceRequest(job: Job<StartServiceRequestJob>) {
-    await this.serviceRequestsService.startProposal(job.data.proposalId);
+    // await this.proposalService.startProposal(job.data.proposalId);
   }
 
   @Process(RESOLVE_DISPUTE_PROCESS)

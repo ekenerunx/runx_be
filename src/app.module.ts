@@ -8,7 +8,7 @@ import { MessagingModule } from './messaging/messaging.module';
 import configuration from './config/configuration';
 import { ServiceTypesModule } from './services-types/service-types.module';
 import { APP_FILTER } from '@nestjs/core';
-import { ServiceRequestsModule } from './service-requests/service-requests.module';
+import { ServiceRequestModule } from './service-request/service-request.module';
 import { WalletModule } from './wallet/wallet.module';
 import { BullModule } from '@nestjs/bull';
 import { NotificationModule } from './notification/notification.module';
@@ -17,14 +17,12 @@ import { Transaction } from './entities/transaction.entity';
 import { PaymentProcessorModule } from './payment-processor/payment-processor.module';
 import { FileModule } from './file/file.module';
 import { Rating } from './entities/rating.entity';
-import { MulterModule } from '@nestjs/platform-express';
-import { diskStorage, memoryStorage } from 'multer';
-import { extname } from 'path';
 import { RatingModule } from './rating/rating.module';
 import { ServiceProviderModule } from './service-provider/service-provider.module';
 import { InviteModule } from './invite/invite.module';
 import { ClientModule } from './client/client.module';
 import { AdminModule } from './admin/admin.module';
+import { ProposalModule } from './proposal/proposal.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
@@ -63,24 +61,11 @@ import { AdminModule } from './admin/admin.module';
       }),
       inject: [ConfigService],
     }),
-    // MulterModule.register({
-    //   storage: diskStorage({
-    //     destination: (req, file, cb) => {
-    //       cb(null, ''); // Set your desired destination folder here
-    //     },
-    //     filename: (req, file, cb) => {
-    //       cb(
-    //         null,
-    //         `${file.fieldname}-${Date.now()}${extname(file.originalname)}`,
-    //       );
-    //     },
-    //   }),
-    // }),
     AuthModule,
     MessagingModule,
     SystemModule,
     ServiceTypesModule,
-    ServiceRequestsModule,
+    ServiceRequestModule,
     WalletModule,
     NotificationModule,
     PaymentProcessorModule,
@@ -90,6 +75,7 @@ import { AdminModule } from './admin/admin.module';
     InviteModule,
     ClientModule,
     AdminModule,
+    ProposalModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: DatabaseExceptionFilter }],
 })

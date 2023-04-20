@@ -7,7 +7,7 @@ import { Roles } from 'src/decorators/roles.decorator';
 import { ServiceRequest } from 'src/entities/service-request.entity';
 import { User } from 'src/entities/user.entity';
 import { RoleGuard } from 'src/guards/role.guard';
-import { SPJobQueryDto } from 'src/service-requests/dto/sp-job.query.dto';
+import { SPJobQueryDto } from 'src/service-request/dto/sp-job.query.dto';
 import { UserRoles } from 'src/users/interfaces/user.interface';
 import { ApiResponse } from '@nestjs/swagger';
 

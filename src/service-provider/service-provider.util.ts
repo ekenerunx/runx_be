@@ -1,7 +1,7 @@
 import { ServiceProviderJob } from 'src/common/interface/job.interface';
-import { ServiceRequestProposal } from 'src/entities/service-request-proposal.entity';
+import { Proposal } from 'src/entities/proposal.entity';
 
-export const stripJob = (p: ServiceRequestProposal): ServiceProviderJob => {
+export const stripJob = (p: Proposal): ServiceProviderJob => {
   const sr = p.service_request;
   const created_by = sr.created_by;
   return {

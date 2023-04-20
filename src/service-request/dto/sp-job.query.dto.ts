@@ -1,4 +1,4 @@
-import { ServiceRequestStatus } from 'src/service-requests/interfaces/service-requests.interface';
+import { ServiceRequestStatus } from 'src/service-request/interfaces/service-requests.interface';
 import { Transform } from 'class-transformer';
 import {
   IsNumber,

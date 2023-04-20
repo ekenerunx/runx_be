@@ -1,4 +1,4 @@
-import { ServiceRequestProposal } from 'src/entities/service-request-proposal.entity';
+import { Proposal } from 'src/entities/proposal.entity';
 import { User } from 'src/entities/user.entity';
 import {
   Entity,
@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 import { SharedEntity } from './shared.entity';
 import { ServiceType } from './service-type.entity';
-import { ServiceRequestStatus } from 'src/service-requests/interfaces/service-requests.interface';
+import { ServiceRequestStatus } from 'src/service-request/interfaces/service-requests.interface';
 
 @Entity()
 export class ServiceRequest extends SharedEntity {
@@ -18,8 +18,8 @@ export class ServiceRequest extends SharedEntity {
   @JoinTable()
   service_types: ServiceType[];
 
-  @OneToMany(() => ServiceRequestProposal, (srp) => srp.service_request)
-  service_request_proposals: ServiceRequestProposal[];
+  @OneToMany(() => Proposal, (srp) => srp.service_request)
+  service_request_proposals: Proposal[];
 
   @ManyToOne(() => User, (user) => user.service_requests)
   created_by: User;
