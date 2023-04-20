@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Pagination, paginate } from 'nestjs-typeorm-paginate';
-import { ServiceRequestProposal } from 'src/entities/service-request-proposal.entity';
+import { Proposal } from 'src/entities/proposal.entity';
 import { User } from 'src/entities/user.entity';
 import { CatchErrorException } from 'src/exceptions';
 import { SPJobQueryDto } from 'src/service-requests/dto/sp-job.query.dto';
@@ -12,8 +12,8 @@ import { stripJob } from './service-provider.util';
 @Injectable()
 export class ServiceProviderService {
   constructor(
-    @InjectRepository(ServiceRequestProposal)
-    private readonly proposalRepo: Repository<ServiceRequestProposal>,
+    @InjectRepository(Proposal)
+    private readonly proposalRepo: Repository<Proposal>,
   ) {}
   async getJobs(user: User, query: SPJobQueryDto): Promise<Pagination<any>> {
     const { status, page, limit, start_date, end_date, date, service_type } =
@@ -40,7 +40,7 @@ export class ServiceProviderService {
     } else if (date) {
       qb.andWhere(`DATE(sr.start_date) = :date`, { date });
     }
-    const res = await paginate<ServiceRequestProposal>(qb, {
+    const res = await paginate<Proposal>(qb, {
       page,
       limit,
     });

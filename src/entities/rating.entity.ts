@@ -6,7 +6,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { User } from './user.entity';
-import { ServiceRequestProposal } from './service-request-proposal.entity';
+import { Proposal } from './proposal.entity';
 import { Reviewer } from 'src/rating/rating.interface';
 
 @Entity()
@@ -30,7 +30,7 @@ export class Rating {
   @Column({ type: 'enum', enum: Reviewer, nullable: true })
   reviewer: Reviewer;
 
-  @ManyToOne(() => ServiceRequestProposal)
+  @ManyToOne(() => Proposal)
   @JoinColumn({ name: 'proposal_id' })
-  proposal: ServiceRequestProposal;
+  proposal: Proposal;
 }

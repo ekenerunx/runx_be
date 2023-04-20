@@ -10,7 +10,7 @@ import { Module } from '@nestjs/common';
 import { ServiceRequestsController } from './service-requests.controller';
 import { ServiceRequest } from './../entities/service-request.entity';
 import { ServiceRequestsService } from './service-requests.service';
-import { ServiceRequestProposal } from 'src/entities/service-request-proposal.entity';
+import { Proposal } from 'src/entities/proposal.entity';
 import { NOTIFICATION_QUEUE } from 'src/notification/notification.constant';
 import { SERVICE_REQUEST_QUEUE } from './service-request.constant';
 import { WalletModule } from 'src/wallet/wallet.module';
@@ -18,12 +18,7 @@ import { Rating } from 'src/entities/rating.entity';
 @Module({
   imports: [
     BullModule.registerQueue({ name: SERVICE_REQUEST_QUEUE }),
-    TypeOrmModule.forFeature([
-      ServiceRequest,
-      User,
-      ServiceRequestProposal,
-      Rating,
-    ]),
+    TypeOrmModule.forFeature([ServiceRequest, User, Proposal, Rating]),
     ServiceTypesModule,
     NotificationModule,
     UsersModule,

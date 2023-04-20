@@ -1,4 +1,4 @@
-import { ServiceRequestProposal } from 'src/entities/service-request-proposal.entity';
+import { Proposal } from 'src/entities/proposal.entity';
 import { User } from 'src/entities/user.entity';
 import {
   Entity,
@@ -18,8 +18,8 @@ export class ServiceRequest extends SharedEntity {
   @JoinTable()
   service_types: ServiceType[];
 
-  @OneToMany(() => ServiceRequestProposal, (srp) => srp.service_request)
-  service_request_proposals: ServiceRequestProposal[];
+  @OneToMany(() => Proposal, (srp) => srp.service_request)
+  service_request_proposals: Proposal[];
 
   @ManyToOne(() => User, (user) => user.service_requests)
   created_by: User;

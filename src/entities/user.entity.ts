@@ -1,4 +1,4 @@
-import { ServiceRequestProposal } from 'src/entities/service-request-proposal.entity';
+import { Proposal } from 'src/entities/proposal.entity';
 import { ServiceRequest } from 'src/entities/service-request.entity';
 import { ServiceType } from 'src/entities/service-type.entity';
 import { Gender } from './../users/interfaces/user.interface';
@@ -145,8 +145,8 @@ export class User extends BaseEntity {
   )
   service_requests: ServiceRequest[];
 
-  @OneToMany(() => ServiceRequestProposal, (srp) => srp.service_provider)
-  service_request_proposals: ServiceRequestProposal[];
+  @OneToMany(() => Proposal, (srp) => srp.service_provider)
+  service_request_proposals: Proposal[];
 
   @Column({ default: 0 })
   sp_wallet_balance: number;

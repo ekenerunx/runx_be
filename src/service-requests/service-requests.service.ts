@@ -2,7 +2,7 @@ import { CompleteProposalDto } from './dto/complete-proposal.dto';
 import { SendProposalDto } from './dto/send-proposal.dto';
 import { MessagingService } from './../messaging/messaging.service';
 import { NotificationService } from './../notification/notification.service';
-import { ServiceRequestProposal } from './../entities/service-request-proposal.entity';
+import { Proposal } from '../entities/proposal.entity';
 import { ServiceRequest } from './../entities/service-request.entity';
 import { SendServiceRequestInvitationsDto } from './dto/send-service-request-invitation.dto';
 import {
@@ -59,8 +59,8 @@ export class ServiceRequestsService {
     @InjectRepository(ServiceRequest)
     private serviceRequestRepository: Repository<ServiceRequest>,
 
-    @InjectRepository(ServiceRequestProposal)
-    private serviceRequestProposalRepository: Repository<ServiceRequestProposal>,
+    @InjectRepository(Proposal)
+    private serviceRequestProposalRepository: Repository<Proposal>,
     @InjectRepository(Rating) private readonly ratingRepo: Repository<Rating>,
 
     @InjectRepository(User) private readonly userRepository: Repository<User>,
@@ -301,7 +301,7 @@ export class ServiceRequestsService {
         );
       }
       const proposals = newUsers.map((user) => {
-        const proposal = new ServiceRequestProposal();
+        const proposal = new Proposal();
         proposal.service_provider = user;
         proposal.service_request = serviceRequest;
         proposal.status = ServiceRequestStatus.INVITED;
