@@ -1,9 +1,9 @@
 import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 import {
   Disputant,
-  DisputeResolveAction,
   DisputeResolver,
-} from '../interfaces/service-requests.interface';
+  DisputeResolveAction,
+} from 'src/dispute/dispute.interface';
 
 export class ResolveDisputeDto {
   @IsEnum(Disputant)

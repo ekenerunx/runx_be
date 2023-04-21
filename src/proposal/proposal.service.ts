@@ -19,7 +19,6 @@ import { CompleteProposalDto } from 'src/service-request/dto/complete-proposal.d
 import { SendProposalDto } from 'src/service-request/dto/send-proposal.dto';
 import { ServiceRequestStatus } from 'src/service-request/interfaces/service-requests.interface';
 import { getMillisecondsDifference } from 'src/service-request/service-request.util';
-import { ServiceRequestService } from 'src/service-request/service-request.service';
 import { TransactionType } from 'src/wallet/interfaces/transaction.interface';
 import { WalletService } from 'src/wallet/wallet.service';
 import { Repository } from 'typeorm';
@@ -36,7 +35,6 @@ export class ProposalService {
     private readonly messagingService: MessagingService,
     private readonly walletService: WalletService,
     private readonly notificationService: NotificationService,
-    private readonly serviceRequestService: ServiceRequestService,
     @InjectQueue(PROPOSAL_QUEUE)
     private proposalQueue: Queue<StartProposalJob>,
   ) {}
@@ -58,7 +56,7 @@ export class ProposalService {
           'Request not found for this service provider',
         );
       }
-      return {} as any;
+      return proposal;
     } catch (error) {
       throw new CatchErrorException(error);
     }
@@ -149,10 +147,11 @@ export class ProposalService {
   ) {
     try {
       const { service_provider_id } = acceptProposalDto;
-      const serviceRequest =
-        await this.serviceRequestService.getServiceRequestById(
-          serviceRequestId,
-        );
+      const proposal = await this.getProposalBySRSP(
+        serviceRequestId,
+        service_provider_id,
+      );
+      const serviceRequest = proposal.service_request;
       // check service request in progress
       if (
         ['COMPLETED', 'PENDING', 'AWAITING_PAYMENT', 'IN_PROGRESS'].includes(
@@ -164,10 +163,6 @@ export class ProposalService {
           HttpStatus.CONFLICT,
         );
       }
-      const proposal = await this.getProposalBySRSP(
-        serviceRequestId,
-        service_provider_id,
-      );
       const wallet = await this.walletService.getWalletBalance(currentUser);
       if (!proposal.proposal_date) {
         return new HttpException(
@@ -266,12 +261,12 @@ export class ProposalService {
       job_complete_file_5,
       job_complete_file_6,
     } = completeProposalDto;
-    const serviceRequest =
-      await this.serviceRequestService.getServiceRequestById(serviceRequestId);
+
     const proposal = await this.getProposalBySRSP(
       serviceRequestId,
       currentUser.id,
     );
+    const serviceRequest = proposal.service_request;
     // check if proposal have been accepted by service provider
     if (!proposal.proposal_accept_date) {
       return new HttpException(

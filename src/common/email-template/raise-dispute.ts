@@ -1,4 +1,4 @@
-import { Disputant } from './../../service-request/interfaces/service-requests.interface';
+import { Disputant } from 'src/dispute/dispute.interface';
 import { ServiceRequest } from 'src/entities/service-request.entity';
 import { User } from 'src/entities/user.entity';
 

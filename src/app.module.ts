@@ -23,6 +23,7 @@ import { InviteModule } from './invite/invite.module';
 import { ClientModule } from './client/client.module';
 import { AdminModule } from './admin/admin.module';
 import { ProposalModule } from './proposal/proposal.module';
+import { DisputeModule } from './dispute/dispute.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
@@ -76,6 +77,7 @@ import { ProposalModule } from './proposal/proposal.module';
     ClientModule,
     AdminModule,
     ProposalModule,
+    DisputeModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: DatabaseExceptionFilter }],
 })

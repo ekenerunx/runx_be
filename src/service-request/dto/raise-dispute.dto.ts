@@ -1,5 +1,5 @@
 import { IsEnum, IsString, IsUUID } from 'class-validator';
-import { Disputant } from '../interfaces/service-requests.interface';
+import { Disputant } from 'src/dispute/dispute.interface';
 
 export class RaiseDisputeDto {
   @IsEnum(Disputant)

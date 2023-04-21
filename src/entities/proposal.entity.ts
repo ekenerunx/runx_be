@@ -1,9 +1,4 @@
-import {
-  Disputant,
-  DisputeResolveAction,
-  DisputeStatus,
-  ServiceRequestStatus,
-} from '../service-request/interfaces/service-requests.interface';
+import { ServiceRequestStatus } from '../service-request/interfaces/service-requests.interface';
 import { User } from 'src/entities/user.entity';
 import { ServiceRequest } from './service-request.entity';
 import {
@@ -14,7 +9,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { SharedEntity } from './shared.entity';
-import { AppDataSource } from 'src/db/data-source';
+import { DisputeResolveAction, DisputeStatus, Disputant } from 'src/dispute/dispute.interface';
 
 @Entity()
 export class Proposal extends SharedEntity {
