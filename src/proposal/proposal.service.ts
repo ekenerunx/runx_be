@@ -1,3 +1,4 @@
+import { InitProposalDto } from './dto/init-proposal.dto';
 import {
   HttpException,
   HttpStatus,
@@ -7,7 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { EmailTemplate } from 'src/common/email-template';
 import { ResponseMessage } from 'src/common/interface/success-message.interface';
-import { normalizeEnum } from 'src/common/utils';
+import { generateAlphaNumeric, normalizeEnum } from 'src/common/utils';
 import { Proposal } from 'src/entities/proposal.entity';
 import { User } from 'src/entities/user.entity';
 import { CatchErrorException } from 'src/exceptions';
@@ -38,6 +39,7 @@ export class ProposalService {
     @InjectQueue(PROPOSAL_QUEUE)
     private proposalQueue: Queue<StartProposalJob>,
   ) {}
+
   async getProposalBySRSP(serviceRequestId: string, serviceProviderId: string) {
     try {
       const proposal = await this.proposalRepo
@@ -61,6 +63,59 @@ export class ProposalService {
       throw new CatchErrorException(error);
     }
   }
+  async getProposalsByRequestId(serviceRequestId: string) {
+    try {
+      return this.proposalRepo
+        .createQueryBuilder('proposal')
+        .leftJoinAndSelect('proposal.service_request', 'sr')
+        .leftJoinAndSelect('proposal.service_provider', 'sp')
+        .where('sr.id = :id', { id: serviceRequestId })
+        .select([
+          'proposal.id',
+          'sr.id',
+          'sp.last_name',
+          'sp.first_name',
+          'sp.id',
+        ])
+        .getMany();
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
+  }
+
+  async updateProposals(proposals: Proposal[]) {
+    this.proposalRepo.save(proposals);
+  }
+
+  async initProposal(currentUser: User, initProposalDto: InitProposalDto) {
+    const { service_request_id } = initProposalDto;
+    const proposal = await this.getProposalBySRSP(
+      service_request_id,
+      currentUser.id,
+    );
+    const invoice_number = await this.generateInvoiceNumber();
+    return { invoice_number };
+  }
+
+  async generateInvoiceNumber() {
+    try {
+      let invoiceNumber = null;
+      do {
+        const invoiceId = generateAlphaNumeric(8);
+        const existing = await this.proposalRepo.findOne({
+          where: { invoice_id: invoiceId },
+        });
+        if (existing) {
+          return;
+        }
+        invoiceNumber = invoiceId;
+      } while (invoiceNumber == null);
+      return invoiceNumber;
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
+  }
+
   async getProposalById(proposalId: string) {
     try {
       const proposal = await this.proposalRepo

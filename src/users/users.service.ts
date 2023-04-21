@@ -111,8 +111,9 @@ export class UsersService {
       return await this.userRepository
         .createQueryBuilder('user')
         .leftJoinAndSelect('user.service_types', 'st')
+        .leftJoinAndSelect('user.ratings', 'rating')
         .whereInIds(ids)
-        // .andWhere('user.is_verified')
+        .andWhere('user.is_verified')
         .select(USER_FIELDS_TO_RETURN)
         .getMany();
     } catch (error) {

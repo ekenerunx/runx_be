@@ -9,7 +9,11 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { SharedEntity } from './shared.entity';
-import { DisputeResolveAction, DisputeStatus, Disputant } from 'src/dispute/dispute.interface';
+import {
+  DisputeResolveAction,
+  DisputeStatus,
+  Disputant,
+} from 'src/dispute/dispute.interface';
 
 @Entity()
 export class Proposal extends SharedEntity {
@@ -47,6 +51,9 @@ export class Proposal extends SharedEntity {
 
   @Column({ nullable: true })
   proposal_date: Date;
+
+  @Column({ nullable: true })
+  invoice_id: string;
 
   @Column({ nullable: true })
   proposal_accept_date: Date;

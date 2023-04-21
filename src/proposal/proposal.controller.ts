@@ -16,6 +16,7 @@ import { CompleteProposalDto } from 'src/proposal/dto/complete-proposal.dto';
 import { UserRoles } from 'src/users/interfaces/user.interface';
 import { AcceptProposalDto } from './dto/accept-proposal.dto';
 import { SendProposalDto } from './dto/send-proposal.dto';
+import { InitProposalDto } from './dto/init-proposal.dto';
 
 @Controller('proposal')
 export class ProposalController {
@@ -73,5 +74,19 @@ export class ProposalController {
   @HttpCode(200)
   async startProposal(@Param('proposalId') proposalId: string) {
     return await this.proposalService.startProposal(proposalId);
+  }
+
+  @Post('/init')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.SERVICE_PROVIDER)
+  @HttpCode(200)
+  async initProposal(
+    @Body() initProposalDto: InitProposalDto,
+    @CurrentUser() currentUser: User,
+  ) {
+    return await this.proposalService.initProposal(
+      currentUser,
+      initProposalDto,
+    );
   }
 }

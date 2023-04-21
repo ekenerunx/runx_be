@@ -14,13 +14,14 @@ import { ResponseMessage } from 'src/common/interface/success-message.interface'
 export class NotificationService {
   constructor(
     @InjectRepository(Notification)
-    private readonly notificationRepository: Repository<Notification>,
+    private readonly noteRepo: Repository<Notification>,
   ) {}
 
   async sendNotification(notification: Partial<Notification>) {
     try {
-      const __note = this.notificationRepository.create(notification);
-      await this.notificationRepository.save(__note);
+      const __note = await this.noteRepo.create(notification);
+      await this.noteRepo.save(__note);
+      console.log('I got here', { __note });
       return;
     } catch (error) {
       throw new CatchErrorException(error);
@@ -29,13 +30,10 @@ export class NotificationService {
 
   async sendNotifications(notifications: Partial<Notification>[]) {
     try {
-      // const notes = notifications.map((notification) => {
-      //   const note = new Notification();
-      //   note.message = notification.message;
-      //   note.subject = notification.subject;
-      //   return note;
-      // });
-      // await this.notificationRepository.save(notes);
+      const notes = await notifications.map((notification) => {
+        return this.noteRepo.create(notification);
+      });
+      await this.noteRepo.save(notes);
     } catch (error) {
       throw new CatchErrorException(error);
     }
@@ -47,7 +45,7 @@ export class NotificationService {
   ) {
     try {
       const { is_read, ids } = markNotificationDto;
-      await this.notificationRepository
+      await this.noteRepo
         .createQueryBuilder()
         .update(Notification)
         .set({ is_read })
@@ -68,7 +66,7 @@ export class NotificationService {
   ) {
     try {
       const { page, limit } = notificationQueryDto;
-      const queryBuilder = await this.notificationRepository
+      const queryBuilder = await this.noteRepo
         .createQueryBuilder('not')
         .leftJoinAndSelect('not.client', 'client')
         .leftJoinAndSelect('not.service_request', 'sr')

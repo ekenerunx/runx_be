@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { InviteService } from './invite.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guide';
 import { CurrentUser } from 'src/decorators/current-user.decorator';
@@ -12,19 +12,16 @@ import { UserRoles } from 'src/users/interfaces/user.interface';
 export class InviteController {
   constructor(private readonly inviteService: InviteService) {}
 
-  @Post('/id/:serviceRequestId/send-invites')
+  @Post('/send-invites')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRoles.CLIENT)
   async sendServiceRequestInvites(
     @CurrentUser() currentUser: User,
-    @Param('serviceRequestId') serviceRequestId: string,
     @Body() sendServiceRequestInvitaionsDto: SendServiceRequestInvitationsDto,
   ) {
-    return 'Herlwe we';
-    //   return await this.serviceRequestsService.sendServiceRequestInvites(
-    //     currentUser,
-    //     serviceRequestId,
-    //     sendServiceRequestInvitaionsDto,
-    //   );
+    return await this.inviteService.sendInvites(
+      currentUser,
+      sendServiceRequestInvitaionsDto,
+    );
   }
 }

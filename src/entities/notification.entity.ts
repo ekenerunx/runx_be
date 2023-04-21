@@ -46,15 +46,15 @@ export class Notification {
   invitation_amount: number;
 
   @ManyToOne(() => ServiceRequest)
-  @JoinColumn()
+  @JoinColumn({ name: 'service_request_id' })
   service_request: ServiceRequest;
 
   @ManyToOne(() => User)
-  @JoinColumn()
+  @JoinColumn({ name: 'client_id' })
   client: User;
 
   @ManyToOne(() => User)
-  @JoinColumn()
+  @JoinColumn({ name: 'sp_id' })
   service_provider: User;
 
   @ManyToOne(() => User)
