@@ -5,8 +5,7 @@ import { normalizeEnum } from 'src/common/utils';
 import { CatchErrorException } from 'src/exceptions';
 import { NotificationType } from 'src/notification/interface/notification.interface';
 import { ProposalService } from 'src/proposal/proposal.service';
-import { RaiseDisputeDto } from 'src/service-request/dto/raise-dispute.dto';
-import { ResolveDisputeDto } from 'src/service-request/dto/resolve-dispute.dto';
+import { RaiseDisputeDto } from 'src/dispute/dto/raise-dispute.dto';
 import { ServiceRequestStatus } from 'src/service-request/interfaces/service-requests.interface';
 import { RESOLVE_DISPUTE_PROCESS } from 'src/service-request/service-request.constant';
 import { TransactionType } from 'src/wallet/interfaces/transaction.interface';
@@ -23,6 +22,7 @@ import { Queue } from 'bull';
 import { MessagingService } from 'src/messaging/messaging.service';
 import { WalletService } from 'src/wallet/wallet.service';
 import { NotificationService } from 'src/notification/notification.service';
+import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
 
 @Injectable()
 export class DisputeService {

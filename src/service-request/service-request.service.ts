@@ -19,10 +19,6 @@ import { ClientServiceRequestQueryDto } from './dto/client-service-request.dto';
 import { paginate, Pagination } from 'nestjs-typeorm-paginate';
 import { GET_SERVICE_REQUEST_BY_ID_FIELDS } from './service-request.constant';
 import { PatchServiceRequestDto } from './dto/patch-service-request.dto';
-import { ResponseMessage } from 'src/common/interface/success-message.interface';
-import { normalizeEnum } from 'src/common/utils';
-import { RaiseDisputeDto } from './dto/raise-dispute.dto';
-import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
 import { Rating } from 'src/entities/rating.entity';
 
 @Injectable()

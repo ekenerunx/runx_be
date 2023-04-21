@@ -22,8 +22,6 @@ import { ClientServiceRequestQueryDto } from './dto/client-service-request.dto';
 import { Pagination } from 'nestjs-typeorm-paginate';
 import { ServiceRequest } from 'src/entities/service-request.entity';
 import { PatchServiceRequestDto } from './dto/patch-service-request.dto';
-import { RaiseDisputeDto } from './dto/raise-dispute.dto';
-import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
 
 @Controller('service-requests')
 export class ServiceRequestController {

@@ -14,9 +14,7 @@ import { CatchErrorException } from 'src/exceptions';
 import { MessagingService } from 'src/messaging/messaging.service';
 import { NotificationType } from 'src/notification/interface/notification.interface';
 import { NotificationService } from 'src/notification/notification.service';
-import { AcceptProposalDto } from 'src/service-request/dto/accept-proposal.dto';
-import { CompleteProposalDto } from 'src/service-request/dto/complete-proposal.dto';
-import { SendProposalDto } from 'src/service-request/dto/send-proposal.dto';
+import { CompleteProposalDto } from 'src/proposal/dto/complete-proposal.dto';
 import { ServiceRequestStatus } from 'src/service-request/interfaces/service-requests.interface';
 import { getMillisecondsDifference } from 'src/service-request/service-request.util';
 import { TransactionType } from 'src/wallet/interfaces/transaction.interface';
@@ -26,6 +24,8 @@ import { InjectQueue } from '@nestjs/bull';
 import { PROPOSAL_QUEUE, START_PROPOSAL_PROCESS } from './proposal.constant';
 import { Queue } from 'bull';
 import { StartProposalJob } from './proposal.interface';
+import { AcceptProposalDto } from './dto/accept-proposal.dto';
+import { SendProposalDto } from './dto/send-proposal.dto';
 
 @Injectable()
 export class ProposalService {
