@@ -1,5 +1,4 @@
 import { MessagingModule } from '../messaging/messaging.module';
-import { ServiceRequestConsumer } from './queue/service-request.consumer';
 import { NotificationModule } from '../notification/notification.module';
 import { BullModule } from '@nestjs/bull';
 import { User } from '../entities/user.entity';
@@ -12,13 +11,11 @@ import { ServiceRequest } from '../entities/service-request.entity';
 import { ServiceRequestService } from './service-request.service';
 import { Proposal } from 'src/entities/proposal.entity';
 import { NOTIFICATION_QUEUE } from 'src/notification/notification.constant';
-import { SERVICE_REQUEST_QUEUE } from './service-request.constant';
 import { WalletModule } from 'src/wallet/wallet.module';
 import { Rating } from 'src/entities/rating.entity';
-import { ProposalModule } from 'src/proposal/proposal.module';
+
 @Module({
   imports: [
-    BullModule.registerQueue({ name: SERVICE_REQUEST_QUEUE }),
     TypeOrmModule.forFeature([ServiceRequest, User, Proposal, Rating]),
     ServiceTypesModule,
     NotificationModule,
@@ -28,10 +25,9 @@ import { ProposalModule } from 'src/proposal/proposal.module';
     }),
     MessagingModule,
     WalletModule,
-    // ProposalModule,
   ],
   controllers: [ServiceRequestController],
-  providers: [ServiceRequestService, ServiceRequestConsumer],
+  providers: [ServiceRequestService],
   exports: [ServiceRequestService],
 })
 export class ServiceRequestModule {}

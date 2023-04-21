@@ -9,11 +9,6 @@ export enum ServiceRequestStatus {
   'NEW' = 'NEW',
 }
 
-export interface StartServiceRequestJob {
-  serviceRequestId: string;
-  proposalId: string;
-}
-
 export enum DisputeStatus {
   'COMPLETED_BY_SYSTEM' = 'COMPLETED_BY_SYSTEM',
   'CANCELLED_BY_ADMIN' = 'CANCELLED_BY_ADMIN',

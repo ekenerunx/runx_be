@@ -9,20 +9,23 @@ import { NotificationModule } from 'src/notification/notification.module';
 import { MessagingModule } from 'src/messaging/messaging.module';
 import { BullModule } from '@nestjs/bull';
 import { NOTIFICATION_QUEUE } from 'src/notification/notification.constant';
+import { PROPOSAL_QUEUE } from './proposal.constant';
+import { ProposalConsumer } from './proposal.consumer';
 
 @Module({
   imports: [
-    // ServiceRequestModule,
-    // NotificationModule,
+    ServiceRequestModule,
+    NotificationModule,
     MessagingModule,
     TypeOrmModule.forFeature([Proposal]),
     WalletModule,
-    // BullModule.registerQueue({
-    //   name: NOTIFICATION_QUEUE,
-    // }),
+    BullModule.registerQueue({
+      name: NOTIFICATION_QUEUE,
+    }),
+    BullModule.registerQueue({ name: PROPOSAL_QUEUE }),
   ],
   controllers: [ProposalController],
-  providers: [ProposalService],
+  providers: [ProposalService, ProposalConsumer],
   exports: [ProposalService],
 })
 export class ProposalModule {}

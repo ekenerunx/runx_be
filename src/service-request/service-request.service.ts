@@ -1,17 +1,6 @@
-import { MessagingService } from '../messaging/messaging.service';
-import { NotificationService } from '../notification/notification.service';
-import { Proposal } from '../entities/proposal.entity';
 import { ServiceRequest } from '../entities/service-request.entity';
 import { SendServiceRequestInvitationsDto } from './dto/send-service-request-invitation.dto';
-import {
-  Disputant,
-  DisputeResolveAction,
-  DisputeResolver,
-  DisputeStatus,
-  ResolveDisputeQueueProcess,
-  ServiceRequestStatus,
-  StartServiceRequestJob,
-} from 'src/service-request/interfaces/service-requests.interface';
+import { ServiceRequestStatus } from 'src/service-request/interfaces/service-requests.interface';
 import { SRSPQueryDto } from './dto/sr-sp.dto';
 import { ServiceTypesService } from 'src/services-types/service-types.service';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -20,8 +9,6 @@ import {
   HttpException,
   HttpStatus,
   NotFoundException,
-  Inject,
-  forwardRef,
 } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { CreateServiceRequestDto } from './dto/create-service-request.dto';
@@ -30,51 +17,23 @@ import { UsersService } from 'src/users/users.service';
 import { CatchErrorException } from 'src/exceptions';
 import { ClientServiceRequestQueryDto } from './dto/client-service-request.dto';
 import { paginate, Pagination } from 'nestjs-typeorm-paginate';
-import { InjectQueue } from '@nestjs/bull';
-import {
-  GET_SERVICE_REQUEST_BY_ID_FIELDS,
-  RESOLVE_DISPUTE_PROCESS,
-  SERVICE_REQUEST_QUEUE,
-} from './service-request.constant';
-import { Queue } from 'bull';
+import { GET_SERVICE_REQUEST_BY_ID_FIELDS } from './service-request.constant';
 import { PatchServiceRequestDto } from './dto/patch-service-request.dto';
-import { serviceRequestInvitationEmailTemplate } from 'src/common/email-template/sr-invitation-email';
-import { EmailTemplate } from 'src/common/email-template';
-import { NotificationType } from 'src/notification/interface/notification.interface';
 import { ResponseMessage } from 'src/common/interface/success-message.interface';
-import { WalletService } from 'src/wallet/wallet.service';
-import { TransactionType } from 'src/wallet/interfaces/transaction.interface';
 import { normalizeEnum } from 'src/common/utils';
 import { RaiseDisputeDto } from './dto/raise-dispute.dto';
 import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
 import { Rating } from 'src/entities/rating.entity';
-import { ProposalService } from 'src/proposal/proposal.service';
 
 @Injectable()
 export class ServiceRequestService {
   constructor(
     @InjectRepository(ServiceRequest)
     private serviceRequestRepository: Repository<ServiceRequest>,
-
-    @InjectRepository(Proposal)
-    private proposalRepo: Repository<Proposal>,
     @InjectRepository(Rating) private readonly ratingRepo: Repository<Rating>,
-
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private serviceTypesService: ServiceTypesService,
-
     private readonly userService: UsersService,
-    @Inject(forwardRef(() => ProposalService))
-    private proposalService: ProposalService,
-    private readonly notificationService: NotificationService,
-
-    @InjectQueue(SERVICE_REQUEST_QUEUE)
-    private readonly serviceRequestQueue: Queue<
-      StartServiceRequestJob | ResolveDisputeQueueProcess
-    >,
-
-    private readonly messagingService: MessagingService,
-    private readonly walletService: WalletService,
   ) {}
 
   async create(createServiceRequestDto: CreateServiceRequestDto, user: User) {
@@ -272,59 +231,59 @@ export class ServiceRequestService {
         );
       }
 
-      const existingProposals = await this.proposalRepo
-        .createQueryBuilder('proposal')
-        .leftJoinAndSelect('proposal.service_request', 'sr')
-        .leftJoinAndSelect('proposal.service_provider', 'sp')
-        .where('sr.id = :id', { id: serviceRequestId })
-        .select([
-          'proposal.id',
-          'sr.id',
-          'sp.last_name',
-          'sp.first_name',
-          'sp.id',
-        ])
-        .getMany();
+      // const existingProposals = await this.proposalRepo
+      //   .createQueryBuilder('proposal')
+      //   .leftJoinAndSelect('proposal.service_request', 'sr')
+      //   .leftJoinAndSelect('proposal.service_provider', 'sp')
+      //   .where('sr.id = :id', { id: serviceRequestId })
+      //   .select([
+      //     'proposal.id',
+      //     'sr.id',
+      //     'sp.last_name',
+      //     'sp.first_name',
+      //     'sp.id',
+      //   ])
+      //   .getMany();
 
-      const existingUsers = existingProposals.map(
-        (proposal) => proposal.service_provider.id,
-      );
-      const newUsers = serviceProviders.filter(
-        (sp) => !existingUsers.includes(sp.id),
-      );
+      // const existingUsers = existingProposals.map(
+      //   (proposal) => proposal.service_provider.id,
+      // );
+      // const newUsers = serviceProviders.filter(
+      //   (sp) => !existingUsers.includes(sp.id),
+      // );
 
-      if (!newUsers.length) {
-        throw new HttpException(
-          'Service providers have already been invited',
-          HttpStatus.CONFLICT,
-        );
-      }
-      const proposals = newUsers.map((user) => {
-        const proposal = new Proposal();
-        proposal.service_provider = user;
-        proposal.service_request = serviceRequest;
-        proposal.status = ServiceRequestStatus.INVITED;
-        return proposal;
-      });
-      await this.proposalRepo.save(proposals);
-      // send invitation email
+      // if (!newUsers.length) {
+      //   throw new HttpException(
+      //     'Service providers have already been invited',
+      //     HttpStatus.CONFLICT,
+      //   );
+      // }
+      // const proposals = newUsers.map((user) => {
+      //   const proposal = new Proposal();
+      //   proposal.service_provider = user;
+      //   proposal.service_request = serviceRequest;
+      //   proposal.status = ServiceRequestStatus.INVITED;
+      //   return proposal;
+      // });
+      // await this.proposalRepo.save(proposals);
+      // // send invitation email
 
-      for (const user of newUsers) {
-        // await this.notificationService.sendNotification({
-        //   message: `${serviceRequest.service_types.join(', ')} / ${
-        //     serviceRequest.created_by.first_name
-        //   }`,
-        //   subject: 'You have a new job invite from a Client',
-        // });
-        await this.messagingService.sendEmail(
-          await serviceRequestInvitationEmailTemplate({
-            serviceRequest,
-            email: user.email,
-            firstName: user.first_name,
-            client: currentUser,
-          }),
-        );
-      }
+      // for (const user of newUsers) {
+      //   // await this.notificationService.sendNotification({
+      //   //   message: `${serviceRequest.service_types.join(', ')} / ${
+      //   //     serviceRequest.created_by.first_name
+      //   //   }`,
+      //   //   subject: 'You have a new job invite from a Client',
+      //   // });
+      //   await this.messagingService.sendEmail(
+      //     await serviceRequestInvitationEmailTemplate({
+      //       serviceRequest,
+      //       email: user.email,
+      //       firstName: user.first_name,
+      //       client: currentUser,
+      //     }),
+      //   );
+      // }
 
       return { message: 'Invitation successfully sent' };
     } catch (error) {
@@ -339,78 +298,78 @@ export class ServiceRequestService {
     try {
       const { service_provider_id, disputant, dispute_reason } =
         raiseDisputeDto;
-      const proposal = await this.proposalService.getProposalBySRSP(
-        serviceRequestId,
-        service_provider_id,
-      );
-      const serviceProvider = proposal.service_provider;
-      const serviceRequest = proposal.service_request;
-      const client = proposal.service_request.created_by;
+      // const proposal = await this.proposalService.getProposalBySRSP(
+      //   serviceRequestId,
+      //   service_provider_id,
+      // );
+      // const serviceProvider = proposal.service_provider;
+      // const serviceRequest = proposal.service_request;
+      // const client = proposal.service_request.created_by;
 
-      const canDisputeStatuses = [
-        ServiceRequestStatus.IN_PROGRESS,
-        ServiceRequestStatus.COMPLETED,
-      ];
-      if (!canDisputeStatuses.includes(proposal.status)) {
-        throw new HttpException(
-          `You can only raise dispute on a service request in ${canDisputeStatuses
-            .map((i) => normalizeEnum(i))
-            .join(',')}`,
-          HttpStatus.BAD_REQUEST,
-        );
-      }
+      // const canDisputeStatuses = [
+      //   ServiceRequestStatus.IN_PROGRESS,
+      //   ServiceRequestStatus.COMPLETED,
+      // ];
+      // if (!canDisputeStatuses.includes(proposal.status)) {
+      //   throw new HttpException(
+      //     `You can only raise dispute on a service request in ${canDisputeStatuses
+      //       .map((i) => normalizeEnum(i))
+      //       .join(',')}`,
+      //     HttpStatus.BAD_REQUEST,
+      //   );
+      // }
 
-      const disputeQueue = await this.serviceRequestQueue.add(
-        RESOLVE_DISPUTE_PROCESS,
-        {
-          serviceRequestId,
-          resolveDisputeDto: {
-            disputant,
-            service_provider_id,
-            dispute_resolve_action:
-              disputant === Disputant.CLIENT
-                ? DisputeResolveAction.REFUND_CLIENT
-                : DisputeResolveAction.PAY_SERVICE_PROVIDER,
-            dispute_resolve_reason:
-              disputant === Disputant.CLIENT
-                ? 'System refunded client after no query'
-                : 'System paid service provider after no query',
-            resolver: DisputeResolver.SYSTEM_QUEUE,
-          },
-        },
-        { delay: 40000 },
-      );
-      proposal.dispute_status = DisputeStatus.IN_PROGRESS;
-      proposal.disputant = disputant;
-      proposal.dispute_queue_id = disputeQueue.id as any;
-      proposal.dispute_date = new Date();
-      proposal.dispute_reason = dispute_reason;
-      await this.proposalRepo.save(proposal);
+      // const disputeQueue = await this.serviceRequestQueue.add(
+      //   RESOLVE_DISPUTE_PROCESS,
+      //   {
+      //     serviceRequestId,
+      //     resolveDisputeDto: {
+      //       disputant,
+      //       service_provider_id,
+      //       dispute_resolve_action:
+      //         disputant === Disputant.CLIENT
+      //           ? DisputeResolveAction.REFUND_CLIENT
+      //           : DisputeResolveAction.PAY_SERVICE_PROVIDER,
+      //       dispute_resolve_reason:
+      //         disputant === Disputant.CLIENT
+      //           ? 'System refunded client after no query'
+      //           : 'System paid service provider after no query',
+      //       resolver: DisputeResolver.SYSTEM_QUEUE,
+      //     },
+      //   },
+      //   { delay: 40000 },
+      // );
+      // proposal.dispute_status = DisputeStatus.IN_PROGRESS;
+      // proposal.disputant = disputant;
+      // proposal.dispute_queue_id = disputeQueue.id as any;
+      // proposal.dispute_date = new Date();
+      // proposal.dispute_reason = dispute_reason;
+      // await this.proposalRepo.save(proposal);
 
-      // send Notification
-      await this.notificationService.sendNotification({
-        type: NotificationType.JOB_DISPUTE_RAISED,
-        service_provider: serviceProvider,
-        service_request: serviceRequest,
-        subject:
-          disputant === Disputant.SERVICE_PROVIDER
-            ? 'Service proposal has rasied a dispute about your completed service request'
-            : '',
-        owner:
-          disputant === Disputant.SERVICE_PROVIDER ? client : serviceProvider,
-      });
+      // // send Notification
+      // await this.notificationService.sendNotification({
+      //   type: NotificationType.JOB_DISPUTE_RAISED,
+      //   service_provider: serviceProvider,
+      //   service_request: serviceRequest,
+      //   subject:
+      //     disputant === Disputant.SERVICE_PROVIDER
+      //       ? 'Service proposal has rasied a dispute about your completed service request'
+      //       : '',
+      //   owner:
+      //     disputant === Disputant.SERVICE_PROVIDER ? client : serviceProvider,
+      // });
 
-      //send sample email to client
-      await this.messagingService.sendEmail(
-        EmailTemplate.raiseDispute({
-          serviceProvider: serviceProvider,
-          serviceRequest,
-          client,
-          disputant,
-          disputeReason: dispute_reason,
-        }),
-      );
-      return new ResponseMessage('Dispute successfully raised');
+      // //send sample email to client
+      // await this.messagingService.sendEmail(
+      //   EmailTemplate.raiseDispute({
+      //     serviceProvider: serviceProvider,
+      //     serviceRequest,
+      //     client,
+      //     disputant,
+      //     disputeReason: dispute_reason,
+      //   }),
+      // );
+      // return new ResponseMessage('Dispute successfully raised');
     } catch (error) {
       throw new CatchErrorException(error);
     }

@@ -1,20 +1,14 @@
-import { InjectQueue } from '@nestjs/bull';
 import {
   HttpException,
   HttpStatus,
-  Inject,
   Injectable,
   NotFoundException,
-  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Queue } from 'bull';
 import { EmailTemplate } from 'src/common/email-template';
 import { ResponseMessage } from 'src/common/interface/success-message.interface';
 import { normalizeEnum } from 'src/common/utils';
-import { Rating } from 'src/entities/rating.entity';
 import { Proposal } from 'src/entities/proposal.entity';
-import { ServiceRequest } from 'src/entities/service-request.entity';
 import { User } from 'src/entities/user.entity';
 import { CatchErrorException } from 'src/exceptions';
 import { MessagingService } from 'src/messaging/messaging.service';
@@ -23,22 +17,16 @@ import { NotificationService } from 'src/notification/notification.service';
 import { AcceptProposalDto } from 'src/service-request/dto/accept-proposal.dto';
 import { CompleteProposalDto } from 'src/service-request/dto/complete-proposal.dto';
 import { SendProposalDto } from 'src/service-request/dto/send-proposal.dto';
-import {
-  ResolveDisputeQueueProcess,
-  ServiceRequestStatus,
-  StartServiceRequestJob,
-} from 'src/service-request/interfaces/service-requests.interface';
-import {
-  SERVICE_REQUEST_QUEUE,
-  START_SERVICE_REQUEST_PROCESS,
-} from 'src/service-request/service-request.constant';
+import { ServiceRequestStatus } from 'src/service-request/interfaces/service-requests.interface';
 import { getMillisecondsDifference } from 'src/service-request/service-request.util';
 import { ServiceRequestService } from 'src/service-request/service-request.service';
-import { ServiceTypesService } from 'src/services-types/service-types.service';
-import { UsersService } from 'src/users/users.service';
 import { TransactionType } from 'src/wallet/interfaces/transaction.interface';
 import { WalletService } from 'src/wallet/wallet.service';
 import { Repository } from 'typeorm';
+import { InjectQueue } from '@nestjs/bull';
+import { PROPOSAL_QUEUE, START_PROPOSAL_PROCESS } from './proposal.constant';
+import { Queue } from 'bull';
+import { StartProposalJob } from './proposal.interface';
 
 @Injectable()
 export class ProposalService {
@@ -47,326 +35,323 @@ export class ProposalService {
     private proposalRepo: Repository<Proposal>,
     private readonly messagingService: MessagingService,
     private readonly walletService: WalletService,
-    // private readonly notificationService: NotificationService,
-    // @InjectRepository(Proposal)
-    @Inject(forwardRef(() => ServiceRequestService))
-    private serviceRequestService: ServiceRequestService, // private readonly serviceRequestQueue: Queue< // private proposalRepo: Repository<Proposal>, // @InjectQueue(SERVICE_REQUEST_QUEUE)
-  ) //   StartServiceRequestJob | ResolveDisputeQueueProcess
-  // >,
-
-  {}
+    private readonly notificationService: NotificationService,
+    private readonly serviceRequestService: ServiceRequestService,
+    @InjectQueue(PROPOSAL_QUEUE)
+    private proposalQueue: Queue<StartProposalJob>,
+  ) {}
   async getProposalBySRSP(serviceRequestId: string, serviceProviderId: string) {
     try {
-      // const proposal = await this.proposalRepo
-      //   .createQueryBuilder('proposal')
-      //   .leftJoinAndSelect('proposal.service_provider', 'sp')
-      //   .leftJoinAndSelect('proposal.service_request', 'sr')
-      //   .leftJoinAndSelect('sr.service_types', 'st')
-      //   .leftJoinAndSelect('sr.created_by', 'created_by')
-      //   .where('sr.id = :serviceRequestId AND sp.id = :serviceProviderId', {
-      //     serviceRequestId,
-      //     serviceProviderId,
-      //   })
-      //   .getOne();
-      // if (!proposal) {
-      //   throw new NotFoundException(
-      //     'Request not found for this service provider',
-      //   );
-      // }
+      const proposal = await this.proposalRepo
+        .createQueryBuilder('proposal')
+        .leftJoinAndSelect('proposal.service_provider', 'sp')
+        .leftJoinAndSelect('proposal.service_request', 'sr')
+        .leftJoinAndSelect('sr.service_types', 'st')
+        .leftJoinAndSelect('sr.created_by', 'created_by')
+        .where('sr.id = :serviceRequestId AND sp.id = :serviceProviderId', {
+          serviceRequestId,
+          serviceProviderId,
+        })
+        .getOne();
+      if (!proposal) {
+        throw new NotFoundException(
+          'Request not found for this service provider',
+        );
+      }
       return {} as any;
     } catch (error) {
       throw new CatchErrorException(error);
     }
   }
-  // async getProposalById(proposalId: string) {
-  //   try {
-  //     const proposal = await this.proposalRepo
-  //       .createQueryBuilder('proposal')
-  //       .leftJoinAndSelect('proposal.service_provider', 'sp')
-  //       .leftJoinAndSelect('proposal.service_request', 'sr')
-  //       .leftJoinAndSelect('sr.service_types', 'st')
-  //       .leftJoinAndSelect('sr.created_by', 'created_by')
-  //       .where('proposal.id = :id', { id: proposalId })
-  //       .getOne();
-  //     return proposal;
-  //   } catch (error) {
-  //     throw new CatchErrorException(error);
-  //   }
-  // }
-  // async sendProposal(
-  //   currentUser: User,
-  //   serviceRequestId: string,
-  //   sendProposalDto: SendProposalDto,
-  // ) {
-  //   try {
-  //     const { amount } = sendProposalDto;
-  //     const proposal = await this.getProposalBySRSP(
-  //       serviceRequestId,
-  //       currentUser.id,
-  //     );
-  //     const serviceRequest = proposal.service_request;
-  //     const serviceProvider = proposal.service_provider;
-  //     const serviceTypes = serviceRequest.service_types;
-  //     const client = serviceRequest.created_by;
-  //     const minServiceFee = serviceTypes.reduce(
-  //       (prev, current) =>
-  //         prev < current.min_service_fee ? prev : current.min_service_fee,
-  //       serviceTypes[0].min_service_fee,
-  //     );
-  //     if (amount < minServiceFee) {
-  //       throw new HttpException(
-  //         `The minimum service fee for ${
-  //           serviceTypes.length > 1 ? 'these' : 'this'
-  //         } service ${
-  //           serviceTypes.length > 1 ? 'types' : 'type'
-  //         } is ${minServiceFee}NGN`,
-  //         HttpStatus.BAD_REQUEST,
-  //       );
-  //     }
-  //     if (proposal.proposal_date) {
-  //       throw new HttpException(
-  //         'Proposal already sent to client',
-  //         HttpStatus.BAD_REQUEST,
-  //       );
-  //     }
-  //     proposal.proposal_date = new Date();
-  //     proposal.amount = amount;
-  //     proposal.proposal_amount = amount;
-  //     proposal.service_request = serviceRequest;
-  //     await this.proposalRepo.save(proposal);
-  //     //send sample email to client
-  //     await this.messagingService.sendEmail(
-  //       EmailTemplate.sendProposal({
-  //         email: client.email,
-  //         firstName: client.first_name,
-  //         serviceRequest,
-  //         sp: serviceProvider,
-  //       }),
-  //     );
-  //     //send Notification
-  //     await this.notificationService.sendNotification({
-  //       type: NotificationType.SERVICE_REQUEST_PROPOSAL,
-  //       service_provider: serviceProvider,
-  //       service_request: serviceRequest,
-  //       subject: 'You have a new service request from a Client',
-  //       owner: client,
-  //     });
-  //     //send to chat
-  //     return new ResponseMessage('Proposal successfully sent');
-  //   } catch (error) {
-  //     throw new CatchErrorException(error);
-  //   }
-  // }
-  // async acceptProposal(
-  //   currentUser: User,
-  //   serviceRequestId: string,
-  //   acceptProposalDto: AcceptProposalDto,
-  // ) {
-  //   try {
-  //     const { service_provider_id } = acceptProposalDto;
-  //     const serviceRequest =
-  //       await this.serviceRequestService.getServiceRequestById(
-  //         serviceRequestId,
-  //       );
-  //     // check service request in progress
-  //     if (
-  //       ['COMPLETED', 'PENDING', 'AWAITING_PAYMENT', 'IN_PROGRESS'].includes(
-  //         serviceRequest.status,
-  //       )
-  //     ) {
-  //       throw new HttpException(
-  //         `Service request already ${normalizeEnum(serviceRequest.status)}`,
-  //         HttpStatus.CONFLICT,
-  //       );
-  //     }
-  //     const proposal = await this.getProposalBySRSP(
-  //       serviceRequestId,
-  //       service_provider_id,
-  //     );
-  //     const wallet = await this.walletService.getWalletBalance(currentUser);
-  //     if (!proposal.proposal_date) {
-  //       return new HttpException(
-  //         'Service provider have not sent proposal yet',
-  //         HttpStatus.BAD_REQUEST,
-  //       );
-  //     }
-  //     if (
-  //       wallet.available_balance < proposal.proposal_amount
-  //       // wallet.available_balance < proposal.proposal_amount
-  //     ) {
-  //       throw new HttpException(
-  //         'You do not have sufficient balance to accept this proposal',
-  //         HttpStatus.BAD_REQUEST,
-  //       );
-  //     }
-  //     const balAfter = wallet.available_balance - proposal.proposal_amount;
-  //     await this.walletService.acceptServiceRequestTransaction({
-  //       description: serviceRequest.description,
-  //       amount: proposal.proposal_amount,
-  //       bal_after: balAfter,
-  //       tnx_type: TransactionType.DEBIT,
-  //       user: currentUser,
-  //       is_client: true,
-  //       is_sp: true,
-  //     });
-  //     const serviceProvider = proposal.service_provider;
-  //     const client = proposal.service_request.created_by;
-  //     await this.walletService.updateWalletBalance({
-  //       user: currentUser,
-  //       transactionType: TransactionType.DEBIT,
-  //       amount: proposal.proposal_amount,
-  //       description: 'Account is debited with and placed in escrow',
-  //       walletToUpdate: 'client',
-  //       escrow: proposal.amount,
-  //       sendNotification: true,
-  //       sendEmail: true,
-  //       client,
-  //       serviceProvider,
-  //       serviceRequest,
-  //       notificationType: NotificationType.ACCOUNT_DEBIT,
-  //     });
-  //     proposal.proposal_accept_date = new Date();
-  //     proposal.status = ServiceRequestStatus.PENDING;
-  //     proposal.service_request = serviceRequest;
-  //     // await this.serviceRequestRepository.save({
-  //     //   ...serviceRequest,
-  //     //   status: ServiceRequestStatus.PENDING,
-  //     // });
-  //     await this.proposalRepo.save(proposal);
-  //     //send sample email to client
-  //     await this.messagingService.sendEmail(
-  //       EmailTemplate.acceptProposal({
-  //         email: serviceProvider.email,
-  //         firstName: serviceProvider.first_name,
-  //         serviceRequest,
-  //         client,
-  //       }),
-  //     );
-  //     //send Notification
-  //     await this.notificationService.sendNotification({
-  //       type: NotificationType.SERVICE_REQUEST_PROPOSAL,
-  //       service_provider: serviceProvider,
-  //       service_request: serviceRequest,
-  //       subject: 'Your Service Request Proposal has been accepted by Client',
-  //       owner: serviceProvider,
-  //     });
-  //     const delay = getMillisecondsDifference(serviceRequest.start_date);
-  //     // send start proposal to queue
-  //     // await this.serviceRequestQueue.add(
-  //     //   START_SERVICE_REQUEST_PROCESS,
-  //     //   {
-  //     //     proposalId: proposal.id,
-  //     //     serviceRequestId: serviceRequest.id,
-  //     //   },
-  //     //   { delay: delay },
-  //     // );
-  //     return new ResponseMessage(
-  //       'Service request proposal accepted successfully',
-  //     );
-  //   } catch (error) {
-  //     throw new CatchErrorException(error);
-  //   }
-  // }
-  // async completeProposal(
-  //   currentUser: User,
-  //   serviceRequestId: string,
-  //   completeProposalDto: CompleteProposalDto,
-  // ) {
-  //   const {
-  //     job_complete_note,
-  //     job_complete_file_1,
-  //     job_complete_file_2,
-  //     job_complete_file_3,
-  //     job_complete_file_4,
-  //     job_complete_file_5,
-  //     job_complete_file_6,
-  //   } = completeProposalDto;
-  //   const serviceRequest =
-  //     await this.serviceRequestService.getServiceRequestById(serviceRequestId);
-  //   const proposal = await this.getProposalBySRSP(
-  //     serviceRequestId,
-  //     currentUser.id,
-  //   );
-  //   // check if proposal have been accepted by service provider
-  //   if (!proposal.proposal_accept_date) {
-  //     return new HttpException(
-  //       'You can only complete a service request that a client have accepted',
-  //       HttpStatus.CONFLICT,
-  //     );
-  //   }
-  //   // check if proposal has started
-  //   if (proposal.status !== ServiceRequestStatus.IN_PROGRESS) {
-  //     return new HttpException(
-  //       'You can only complete a service request in progress',
-  //       HttpStatus.CONFLICT,
-  //     );
-  //   }
-  //   const serviceProvider = proposal.service_provider;
-  //   const client = proposal.service_request.created_by;
-  //   proposal.proposal_accept_date = new Date();
-  //   proposal.status = ServiceRequestStatus.PENDING;
-  //   proposal.service_request = serviceRequest;
-  //   proposal.job_complete_note = job_complete_note;
-  //   proposal.job_complete_file_1 = job_complete_file_1;
-  //   proposal.job_complete_file_2 = job_complete_file_2;
-  //   proposal.job_complete_file_3 = job_complete_file_3;
-  //   proposal.job_complete_file_4 = job_complete_file_4;
-  //   proposal.job_complete_file_5 = job_complete_file_5;
-  //   proposal.job_complete_file_6 = job_complete_file_6;
-  //   serviceRequest.status = ServiceRequestStatus.COMPLETED;
-  //   // await this.serviceRequestRepository.save({
-  //   //   ...serviceRequest,
-  //   //   status: ServiceRequestStatus.COMPLETED,
-  //   // });
-  //   await this.proposalRepo.save(proposal);
-  //   //send Notification
-  //   await this.notificationService.sendNotification({
-  //     type: NotificationType.PROPOSAL_COMPLETE,
-  //     service_provider: serviceProvider,
-  //     service_request: serviceRequest,
-  //     subject: 'Service Request has been completed by Service provider',
-  //     owner: client,
-  //   });
-  //   //send sample email to client
-  //   await this.messagingService.sendEmail(
-  //     EmailTemplate.completeProposal({
-  //       serviceProvider: serviceProvider,
-  //       serviceRequest,
-  //       client,
-  //     }),
-  //   );
-  //   return new ResponseMessage('Service request have been marked as completed');
-  // }
-  // async startProposal(proposalId: string) {
-  //   try {
-  //     const proposal = await this.getProposalById(proposalId);
-  //     const serviceProvider = proposal.service_provider;
-  //     const serviceRequest = proposal.service_request;
-  //     const client = proposal.service_request.created_by;
-  //     // update status
-  //     proposal.status = ServiceRequestStatus.IN_PROGRESS;
-  //     serviceRequest.status = ServiceRequestStatus.IN_PROGRESS;
-  //     // await this.serviceRequestRepository.save(serviceRequest);
-  //     await this.proposalRepo.save(proposal);
-  //     // send Notification
-  //     await this.notificationService.sendNotification({
-  //       type: NotificationType.PROPOSAL_COMPLETE,
-  //       service_provider: serviceProvider,
-  //       service_request: serviceRequest,
-  //       subject: 'Service Request has been started',
-  //       owner: serviceProvider,
-  //     });
-  //     //send sample email to client
-  //     await this.messagingService.sendEmail(
-  //       EmailTemplate.startProposal({
-  //         serviceProvider: serviceProvider,
-  //         serviceRequest,
-  //         client,
-  //       }),
-  //     );
-  //     return;
-  //   } catch (error) {
-  //     throw new CatchErrorException(error);
-  //   }
-  // }
+  async getProposalById(proposalId: string) {
+    try {
+      const proposal = await this.proposalRepo
+        .createQueryBuilder('proposal')
+        .leftJoinAndSelect('proposal.service_provider', 'sp')
+        .leftJoinAndSelect('proposal.service_request', 'sr')
+        .leftJoinAndSelect('sr.service_types', 'st')
+        .leftJoinAndSelect('sr.created_by', 'created_by')
+        .where('proposal.id = :id', { id: proposalId })
+        .getOne();
+      return proposal;
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
+  }
+  async sendProposal(
+    currentUser: User,
+    serviceRequestId: string,
+    sendProposalDto: SendProposalDto,
+  ) {
+    try {
+      const { amount } = sendProposalDto;
+      const proposal = await this.getProposalBySRSP(
+        serviceRequestId,
+        currentUser.id,
+      );
+      const serviceRequest = proposal.service_request;
+      const serviceProvider = proposal.service_provider;
+      const serviceTypes = serviceRequest.service_types;
+      const client = serviceRequest.created_by;
+      const minServiceFee = serviceTypes.reduce(
+        (prev, current) =>
+          prev < current.min_service_fee ? prev : current.min_service_fee,
+        serviceTypes[0].min_service_fee,
+      );
+      if (amount < minServiceFee) {
+        throw new HttpException(
+          `The minimum service fee for ${
+            serviceTypes.length > 1 ? 'these' : 'this'
+          } service ${
+            serviceTypes.length > 1 ? 'types' : 'type'
+          } is ${minServiceFee}NGN`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (proposal.proposal_date) {
+        throw new HttpException(
+          'Proposal already sent to client',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      proposal.proposal_date = new Date();
+      proposal.amount = amount;
+      proposal.proposal_amount = amount;
+      proposal.service_request = serviceRequest;
+      await this.proposalRepo.save(proposal);
+      //send sample email to client
+      await this.messagingService.sendEmail(
+        EmailTemplate.sendProposal({
+          email: client.email,
+          firstName: client.first_name,
+          serviceRequest,
+          sp: serviceProvider,
+        }),
+      );
+      //send Notification
+      await this.notificationService.sendNotification({
+        type: NotificationType.SERVICE_REQUEST_PROPOSAL,
+        service_provider: serviceProvider,
+        service_request: serviceRequest,
+        subject: 'You have a new service request from a Client',
+        owner: client,
+      });
+      //send to chat
+      return new ResponseMessage('Proposal successfully sent');
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
+  }
+  async acceptProposal(
+    currentUser: User,
+    serviceRequestId: string,
+    acceptProposalDto: AcceptProposalDto,
+  ) {
+    try {
+      const { service_provider_id } = acceptProposalDto;
+      const serviceRequest =
+        await this.serviceRequestService.getServiceRequestById(
+          serviceRequestId,
+        );
+      // check service request in progress
+      if (
+        ['COMPLETED', 'PENDING', 'AWAITING_PAYMENT', 'IN_PROGRESS'].includes(
+          serviceRequest.status,
+        )
+      ) {
+        throw new HttpException(
+          `Service request already ${normalizeEnum(serviceRequest.status)}`,
+          HttpStatus.CONFLICT,
+        );
+      }
+      const proposal = await this.getProposalBySRSP(
+        serviceRequestId,
+        service_provider_id,
+      );
+      const wallet = await this.walletService.getWalletBalance(currentUser);
+      if (!proposal.proposal_date) {
+        return new HttpException(
+          'Service provider have not sent proposal yet',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (
+        wallet.available_balance < proposal.proposal_amount
+        // wallet.available_balance < proposal.proposal_amount
+      ) {
+        throw new HttpException(
+          'You do not have sufficient balance to accept this proposal',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      const balAfter = wallet.available_balance - proposal.proposal_amount;
+      await this.walletService.acceptServiceRequestTransaction({
+        description: serviceRequest.description,
+        amount: proposal.proposal_amount,
+        bal_after: balAfter,
+        tnx_type: TransactionType.DEBIT,
+        user: currentUser,
+        is_client: true,
+        is_sp: true,
+      });
+      const serviceProvider = proposal.service_provider;
+      const client = proposal.service_request.created_by;
+      await this.walletService.updateWalletBalance({
+        user: currentUser,
+        transactionType: TransactionType.DEBIT,
+        amount: proposal.proposal_amount,
+        description: 'Account is debited with and placed in escrow',
+        walletToUpdate: 'client',
+        escrow: proposal.amount,
+        sendNotification: true,
+        sendEmail: true,
+        client,
+        serviceProvider,
+        serviceRequest,
+        notificationType: NotificationType.ACCOUNT_DEBIT,
+      });
+      proposal.proposal_accept_date = new Date();
+      proposal.status = ServiceRequestStatus.PENDING;
+      proposal.service_request = serviceRequest;
+      // await this.serviceRequestRepository.save({
+      //   ...serviceRequest,
+      //   status: ServiceRequestStatus.PENDING,
+      // });
+      await this.proposalRepo.save(proposal);
+      //send sample email to client
+      await this.messagingService.sendEmail(
+        EmailTemplate.acceptProposal({
+          email: serviceProvider.email,
+          firstName: serviceProvider.first_name,
+          serviceRequest,
+          client,
+        }),
+      );
+      //send Notification
+      await this.notificationService.sendNotification({
+        type: NotificationType.SERVICE_REQUEST_PROPOSAL,
+        service_provider: serviceProvider,
+        service_request: serviceRequest,
+        subject: 'Your Service Request Proposal has been accepted by Client',
+        owner: serviceProvider,
+      });
+      const delay = getMillisecondsDifference(serviceRequest.start_date);
+      // send start proposal to queue
+      await this.proposalQueue.add(
+        START_PROPOSAL_PROCESS,
+        {
+          proposalId: proposal.id,
+          serviceRequestId: serviceRequest.id,
+        },
+        { delay: delay },
+      );
+      return new ResponseMessage(
+        'Service request proposal accepted successfully',
+      );
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
+  }
+  async completeProposal(
+    currentUser: User,
+    serviceRequestId: string,
+    completeProposalDto: CompleteProposalDto,
+  ) {
+    const {
+      job_complete_note,
+      job_complete_file_1,
+      job_complete_file_2,
+      job_complete_file_3,
+      job_complete_file_4,
+      job_complete_file_5,
+      job_complete_file_6,
+    } = completeProposalDto;
+    const serviceRequest =
+      await this.serviceRequestService.getServiceRequestById(serviceRequestId);
+    const proposal = await this.getProposalBySRSP(
+      serviceRequestId,
+      currentUser.id,
+    );
+    // check if proposal have been accepted by service provider
+    if (!proposal.proposal_accept_date) {
+      return new HttpException(
+        'You can only complete a service request that a client have accepted',
+        HttpStatus.CONFLICT,
+      );
+    }
+    // check if proposal has started
+    if (proposal.status !== ServiceRequestStatus.IN_PROGRESS) {
+      return new HttpException(
+        'You can only complete a service request in progress',
+        HttpStatus.CONFLICT,
+      );
+    }
+    const serviceProvider = proposal.service_provider;
+    const client = proposal.service_request.created_by;
+    proposal.proposal_accept_date = new Date();
+    proposal.status = ServiceRequestStatus.PENDING;
+    proposal.service_request = serviceRequest;
+    proposal.job_complete_note = job_complete_note;
+    proposal.job_complete_file_1 = job_complete_file_1;
+    proposal.job_complete_file_2 = job_complete_file_2;
+    proposal.job_complete_file_3 = job_complete_file_3;
+    proposal.job_complete_file_4 = job_complete_file_4;
+    proposal.job_complete_file_5 = job_complete_file_5;
+    proposal.job_complete_file_6 = job_complete_file_6;
+    serviceRequest.status = ServiceRequestStatus.COMPLETED;
+    // await this.serviceRequestRepository.save({
+    //   ...serviceRequest,
+    //   status: ServiceRequestStatus.COMPLETED,
+    // });
+    await this.proposalRepo.save(proposal);
+    //send Notification
+    await this.notificationService.sendNotification({
+      type: NotificationType.PROPOSAL_COMPLETE,
+      service_provider: serviceProvider,
+      service_request: serviceRequest,
+      subject: 'Service Request has been completed by Service provider',
+      owner: client,
+    });
+    //send sample email to client
+    await this.messagingService.sendEmail(
+      EmailTemplate.completeProposal({
+        serviceProvider: serviceProvider,
+        serviceRequest,
+        client,
+      }),
+    );
+    return new ResponseMessage('Service request have been marked as completed');
+  }
+  async startProposal(proposalId: string) {
+    try {
+      const proposal = await this.getProposalById(proposalId);
+      const serviceProvider = proposal.service_provider;
+      const serviceRequest = proposal.service_request;
+      const client = proposal.service_request.created_by;
+      // update status
+      proposal.status = ServiceRequestStatus.IN_PROGRESS;
+      serviceRequest.status = ServiceRequestStatus.IN_PROGRESS;
+      // await this.serviceRequestRepository.save(serviceRequest);
+      await this.proposalRepo.save(proposal);
+      // send Notification
+      await this.notificationService.sendNotification({
+        type: NotificationType.PROPOSAL_COMPLETE,
+        service_provider: serviceProvider,
+        service_request: serviceRequest,
+        subject: 'Service Request has been started',
+        owner: serviceProvider,
+      });
+      //send sample email to client
+      await this.messagingService.sendEmail(
+        EmailTemplate.startProposal({
+          serviceProvider: serviceProvider,
+          serviceRequest,
+          client,
+        }),
+      );
+      return;
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
+  }
 }
