@@ -27,6 +27,7 @@ import { Queue } from 'bull';
 import { StartProposalJob } from './proposal.interface';
 import { AcceptProposalDto } from './dto/accept-proposal.dto';
 import { SendProposalDto } from './dto/send-proposal.dto';
+import { SystemService } from 'src/system/system.service';
 
 @Injectable()
 export class ProposalService {
@@ -38,6 +39,7 @@ export class ProposalService {
     private readonly notificationService: NotificationService,
     @InjectQueue(PROPOSAL_QUEUE)
     private proposalQueue: Queue<StartProposalJob>,
+    private readonly systemService: SystemService,
   ) {}
 
   async getProposalBySRSP(serviceRequestId: string, serviceProviderId: string) {
@@ -89,12 +91,25 @@ export class ProposalService {
 
   async initProposal(currentUser: User, initProposalDto: InitProposalDto) {
     const { service_request_id } = initProposalDto;
+    const systemData = await this.systemService.getSystem();
     const proposal = await this.getProposalBySRSP(
       service_request_id,
       currentUser.id,
     );
-    const invoice_number = await this.generateInvoiceNumber();
-    return { invoice_number };
+    if (proposal.invoice_id) {
+      return {
+        invoice_number: proposal.invoice_id,
+        service_fee: systemData.service_fee,
+      };
+    } else {
+      const invoice_number = await this.generateInvoiceNumber();
+      proposal.invoice_id = invoice_number;
+      const updatedProposal = await this.proposalRepo.save(proposal);
+      return {
+        invoice_number: updatedProposal.invoice_id,
+        service_fee: systemData.service_fee,
+      };
+    }
   }
 
   async generateInvoiceNumber() {
