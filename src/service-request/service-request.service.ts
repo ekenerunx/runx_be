@@ -1,5 +1,5 @@
 import { ServiceRequest } from '../entities/service-request.entity';
-import { SendInvitesDto } from './dto/send-invites.dto';
+import { SendInvitesDto } from '../invite/dto/send-invites.dto';
 import { ServiceRequestStatus } from 'src/service-request/interfaces/service-requests.interface';
 import { SRSPQueryDto } from './dto/sr-sp.dto';
 import { ServiceTypesService } from 'src/services-types/service-types.service';

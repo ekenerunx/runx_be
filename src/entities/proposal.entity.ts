@@ -38,6 +38,9 @@ export class Proposal extends SharedEntity {
   invite_decline_date: Date;
 
   @Column({ nullable: true })
+  invite_decline_reason: string;
+
+  @Column({ nullable: true })
   invite_cancel_date: Date;
 
   @Column({ nullable: true })

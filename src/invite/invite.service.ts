@@ -7,10 +7,14 @@ import { CatchErrorException } from 'src/exceptions';
 import { MessagingService } from 'src/messaging/messaging.service';
 import { NotificationService } from 'src/notification/notification.service';
 import { ProposalService } from 'src/proposal/proposal.service';
-import { SendInvitesDto } from 'src/service-request/dto/send-invites.dto';
+import { SendInvitesDto } from 'src/invite/dto/send-invites.dto';
 import { ServiceRequestStatus } from 'src/service-request/interfaces/service-requests.interface';
 import { ServiceRequestService } from 'src/service-request/service-request.service';
 import { UsersService } from 'src/users/users.service';
+import { AcceptInviteDto } from './dto/accept-invite.dto';
+import { DeclineInviteDto } from './dto/decline-invite.dto';
+import { CancelInviteDto } from './dto/cancel-invite.dto';
+import { ResponseMessage } from 'src/common/interface/success-message.interface';
 
 @Injectable()
 export class InviteService {
@@ -130,5 +134,83 @@ export class InviteService {
     } catch (error) {
       throw new CatchErrorException(error);
     }
+  }
+
+  async acceptInvite(currentUser: User, acceptInviteDto: AcceptInviteDto) {
+    const { service_request_id } = acceptInviteDto;
+    const proposal = await this.proposalService.getProposalBySRSP(
+      service_request_id,
+      currentUser.id,
+    );
+    if (proposal.invite_cancel_date) {
+      throw new HttpException(
+        'Invite cancelled by client',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    if (proposal.invite_accept_date) {
+      throw new HttpException(
+        'Invite already accepted',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    proposal.invite_accept_date = new Date();
+    await this.proposalService.updateProposals([proposal]);
+    return new ResponseMessage('Invite successfully accepted');
+  }
+
+  async declineInvite(currentUser: User, declineInviteDto: DeclineInviteDto) {
+    const { service_request_id, invite_decline_reason } = declineInviteDto;
+    const proposal = await this.proposalService.getProposalBySRSP(
+      service_request_id,
+      currentUser.id,
+    );
+    if (proposal.invite_cancel_date) {
+      throw new HttpException(
+        'Invite cancelled by client',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    if (proposal.invite_accept_date) {
+      throw new HttpException(
+        'You cannot decline accepted invite',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    if (proposal.invite_decline_date) {
+      throw new HttpException(
+        'Invite already declined',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    proposal.invite_decline_date = new Date();
+    proposal.invite_decline_reason = invite_decline_reason;
+    await this.proposalService.updateProposals([proposal]);
+    return new ResponseMessage('Invite successfully declined');
+  }
+
+  async cancelInvite(currentUser: User, cancelInviteDto: CancelInviteDto) {
+    const { service_request_id, invite_cancel_reason, service_provider_id } =
+      cancelInviteDto;
+    const proposal = await this.proposalService.getProposalBySRSP(
+      service_request_id,
+      service_provider_id,
+    );
+    if (proposal.service_request.created_by.id !== currentUser.id) {
+      throw new HttpException(
+        'You can only cancel invites you sent',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    if (proposal.invite_cancel_date) {
+      throw new HttpException(
+        'Invite already cancelled',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    proposal.invite_cancel_date = new Date();
+    proposal.invite_cancel_reason = invite_cancel_reason;
+    await this.proposalService.updateProposals([proposal]);
+    return new ResponseMessage('Invite successfully cancelled');
   }
 }

@@ -9,7 +9,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
-import { CreateServiceRequestDto } from './create-service-request.dto';
+import { CreateServiceRequestDto } from '../../service-request/dto/create-service-request.dto';
 
 export class SendInvitesDto {
   @IsArray()
