@@ -22,7 +22,7 @@ import { InitProposalDto } from './dto/init-proposal.dto';
 export class ProposalController {
   constructor(private readonly proposalService: ProposalService) {}
 
-  @Post('/id/:serviceRequestId/send-proposal')
+  @Post('send')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRoles.SERVICE_PROVIDER)
   async sendProposal(
@@ -37,7 +37,7 @@ export class ProposalController {
     );
   }
 
-  @Post('/id/:serviceRequestId/accept-proposal')
+  @Post('accept')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRoles.CLIENT)
   @HttpCode(200)
@@ -53,7 +53,7 @@ export class ProposalController {
     );
   }
 
-  @Post('/id/:serviceRequestId/complete-proposal')
+  @Post('complete')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRoles.SERVICE_PROVIDER)
   @HttpCode(200)
@@ -69,7 +69,7 @@ export class ProposalController {
     );
   }
 
-  @Post('/proposal/:proposalId/start-proposal')
+  @Post('start')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @HttpCode(200)
   async startProposal(@Param('proposalId') proposalId: string) {
