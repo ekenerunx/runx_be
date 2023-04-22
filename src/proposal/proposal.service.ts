@@ -28,6 +28,7 @@ import { StartProposalJob } from './proposal.interface';
 import { AcceptProposalDto } from './dto/accept-proposal.dto';
 import { SendProposalDto } from './dto/send-proposal.dto';
 import { SystemService } from 'src/system/system.service';
+import { ServiceRequestService } from 'src/service-request/service-request.service';
 
 @Injectable()
 export class ProposalService {
@@ -40,6 +41,7 @@ export class ProposalService {
     @InjectQueue(PROPOSAL_QUEUE)
     private proposalQueue: Queue<StartProposalJob>,
     private readonly systemService: SystemService,
+    private readonly serviceRequestService: ServiceRequestService,
   ) {}
 
   async getProposalBySRSP(serviceRequestId: string, serviceProviderId: string) {
@@ -179,7 +181,6 @@ export class ProposalService {
         );
       }
       proposal.proposal_date = new Date();
-      proposal.amount = amount;
       proposal.proposal_amount = amount;
       proposal.proposal_service_fee = service_fee;
       proposal.service_request = serviceRequest;
@@ -229,55 +230,55 @@ export class ProposalService {
           HttpStatus.CONFLICT,
         );
       }
-      const wallet = await this.walletService.getWalletBalance(currentUser);
+      // const wallet = await this.walletService.getWalletBalance(currentUser);
       if (!proposal.proposal_date) {
         return new HttpException(
           'Service provider have not sent proposal yet',
           HttpStatus.BAD_REQUEST,
         );
       }
-      if (
-        wallet.available_balance < proposal.proposal_amount
-        // wallet.available_balance < proposal.proposal_amount
-      ) {
-        throw new HttpException(
-          'You do not have sufficient balance to accept this proposal',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-      const balAfter = wallet.available_balance - proposal.proposal_amount;
-      await this.walletService.acceptServiceRequestTransaction({
-        description: serviceRequest.description,
-        amount: proposal.proposal_amount,
-        bal_after: balAfter,
-        tnx_type: TransactionType.DEBIT,
-        user: currentUser,
-        is_client: true,
-        is_sp: true,
-      });
+      // if (
+      //   wallet.available_balance < proposal.proposal_amount
+      //   // wallet.available_balance < proposal.proposal_amount
+      // ) {
+      //   throw new HttpException(
+      //     'You do not have sufficient balance to accept this proposal',
+      //     HttpStatus.BAD_REQUEST,
+      //   );
+      // }
+      // const balAfter = wallet.available_balance - proposal.proposal_amount;
+      // await this.walletService.acceptServiceRequestTransaction({
+      //   description: serviceRequest.description,
+      //   amount: proposal.proposal_amount,
+      //   bal_after: balAfter,
+      //   tnx_type: TransactionType.DEBIT,
+      //   user: currentUser,
+      //   is_client: true,
+      //   is_sp: true,
+      // });
       const serviceProvider = proposal.service_provider;
       const client = proposal.service_request.created_by;
-      await this.walletService.updateWalletBalance({
-        user: currentUser,
-        transactionType: TransactionType.DEBIT,
-        amount: proposal.proposal_amount,
-        description: 'Account is debited with and placed in escrow',
-        walletToUpdate: 'client',
-        escrow: proposal.amount,
-        sendNotification: true,
-        sendEmail: true,
-        client,
-        serviceProvider,
-        serviceRequest,
-        notificationType: NotificationType.ACCOUNT_DEBIT,
-      });
+      // await this.walletService.updateWalletBalance({
+      //   user: currentUser,
+      //   transactionType: TransactionType.DEBIT,
+      //   amount: proposal.proposal_amount,
+      //   description: 'Account is debited with and placed in escrow',
+      //   walletToUpdate: 'client',
+      //   escrow: proposal.amount,
+      //   sendNotification: true,
+      //   sendEmail: true,
+      //   client,
+      //   serviceProvider,
+      //   serviceRequest,
+      //   notificationType: NotificationType.ACCOUNT_DEBIT,
+      // });
       proposal.proposal_accept_date = new Date();
       proposal.status = ServiceRequestStatus.PENDING;
       proposal.service_request = serviceRequest;
-      // await this.serviceRequestRepository.save({
-      //   ...serviceRequest,
-      //   status: ServiceRequestStatus.PENDING,
-      // });
+      await this.serviceRequestService.updateServiceRequest({
+        ...serviceRequest,
+        status: ServiceRequestStatus.PENDING,
+      });
       await this.proposalRepo.save(proposal);
       //send sample email to client
       await this.messagingService.sendEmail(

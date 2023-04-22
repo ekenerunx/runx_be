@@ -10,6 +10,7 @@ import { BullModule } from '@nestjs/bull';
 import { PROPOSAL_QUEUE } from './proposal.constant';
 import { ProposalConsumer } from './proposal.consumer';
 import { SystemModule } from 'src/system/system.module';
+import { ServiceRequestModule } from 'src/service-request/service-request.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { SystemModule } from 'src/system/system.module';
     WalletModule,
     BullModule.registerQueue({ name: PROPOSAL_QUEUE }),
     SystemModule,
+    ServiceRequestModule,
   ],
   controllers: [ProposalController],
   providers: [ProposalService, ProposalConsumer],

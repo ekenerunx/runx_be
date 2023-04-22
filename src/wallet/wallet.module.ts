@@ -8,6 +8,8 @@ import { User } from 'src/entities/user.entity';
 import { PaymentProcessorModule } from 'src/payment-processor/payment-processor.module';
 import { NotificationModule } from 'src/notification/notification.module';
 import { MessagingModule } from 'src/messaging/messaging.module';
+import { ConfigService } from '@nestjs/config';
+import Redis from 'ioredis';
 
 @Module({
   imports: [
@@ -17,7 +19,22 @@ import { MessagingModule } from 'src/messaging/messaging.module';
     MessagingModule,
   ],
   controllers: [WalletController],
-  providers: [WalletService],
+  providers: [
+    WalletService,
+    {
+      provide: 'REDIS_CLIENT',
+      useFactory: (configService: ConfigService) => {
+        const redisConfig = {
+          host: configService.get<string>('redis.host'),
+          port: configService.get<number>('redis.port'),
+          password: configService.get<string>('redis.password'),
+          username: configService.get<string>('redis.username'),
+        };
+        return new Redis(redisConfig);
+      },
+      inject: [ConfigService],
+    },
+  ],
   exports: [WalletService],
 })
 export class WalletModule {}

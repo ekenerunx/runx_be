@@ -25,7 +25,7 @@ import { Rating } from 'src/entities/rating.entity';
 export class ServiceRequestService {
   constructor(
     @InjectRepository(ServiceRequest)
-    private serviceRequestRepository: Repository<ServiceRequest>,
+    private serviceRequestRepo: Repository<ServiceRequest>,
     @InjectRepository(Rating) private readonly ratingRepo: Repository<Rating>,
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private serviceTypesService: ServiceTypesService,
@@ -41,7 +41,7 @@ export class ServiceRequestService {
       if (!serviceTypes.length) {
         throw new HttpException('Invalid service type', HttpStatus.BAD_REQUEST);
       }
-      const request = await this.serviceRequestRepository.save({
+      const request = await this.serviceRequestRepo.save({
         status: ServiceRequestStatus.NEW,
         ...createServiceRequestDto,
         service_types: serviceTypes,
@@ -66,7 +66,7 @@ export class ServiceRequestService {
           await this.serviceTypesService.getServiceTypesByIds(service_types);
         request.service_types = serviceTypes;
       }
-      await this.serviceRequestRepository.save({
+      await this.serviceRequestRepo.save({
         ...request,
         ...__patchServiceRequestDto,
       });
@@ -78,7 +78,7 @@ export class ServiceRequestService {
 
   async getServiceRequestById(id: string, isThrowError = true) {
     try {
-      const serviceRequest = await this.serviceRequestRepository
+      const serviceRequest = await this.serviceRequestRepo
         .createQueryBuilder('r')
         .leftJoinAndSelect('r.created_by', 'user')
         .leftJoinAndSelect('r.service_types', 'st')
@@ -169,7 +169,7 @@ export class ServiceRequestService {
 
   async getClientStats(user: User) {
     const validStatuses = Object.values(ServiceRequestStatus);
-    const queryBuilder = this.serviceRequestRepository.createQueryBuilder('sr');
+    const queryBuilder = this.serviceRequestRepo.createQueryBuilder('sr');
     const result = await queryBuilder
       .where('sr.created_by.id = :id', { id: user.id })
       .andWhere(`sr.status IN (:...statuses)`, { statuses: validStatuses })
@@ -197,7 +197,7 @@ export class ServiceRequestService {
     query: ClientServiceRequestQueryDto,
   ): Promise<Pagination<ServiceRequest>> {
     const { status, page, limit } = query;
-    const queryBuilder = this.serviceRequestRepository
+    const queryBuilder = this.serviceRequestRepo
       .createQueryBuilder('sr')
       .leftJoinAndSelect('sr.service_types', 'st')
       .leftJoin('sr.created_by', 'created_by')
@@ -206,5 +206,9 @@ export class ServiceRequestService {
       queryBuilder.andWhere('sr.status = :status', { status });
     }
     return await paginate<ServiceRequest>(queryBuilder, { page, limit });
+  }
+
+  async updateServiceRequest(serviceRequest: ServiceRequest) {
+    return await this.serviceRequestRepo.save(serviceRequest);
   }
 }

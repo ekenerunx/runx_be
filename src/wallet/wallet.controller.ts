@@ -1,5 +1,4 @@
 import { PaginationQueryDto } from './../common/dto/pagination-query.dto';
-import { WalletBalance } from './interfaces/wallet.interface';
 import {
   Body,
   Controller,
@@ -21,19 +20,30 @@ import { CurrentUser } from 'src/decorators/current-user.decorator';
 import { User } from 'src/entities/user.entity';
 import { PaginationResponse } from 'src/common/interface';
 import { Transaction } from 'src/entities/transaction.entity';
+import { ClientWallet, SpWallet } from './interfaces/wallet.interface';
+import { FundWalletDto } from './dto/fund-wallet.dto';
 
 @Controller('wallet')
 export class WalletController {
   constructor(private readonly walletService: WalletService) {}
 
-  @Get('balance')
+  @Get('sp')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRoles.CLIENT, UserRoles.SERVICE_PROVIDER)
   @HttpCode(200)
-  async walletBalance(
-    @CurrentUser() currentUser: User,
-  ): Promise<WalletBalance> {
-    return await this.walletService.getWalletBalance(currentUser);
+  async spWallet(@CurrentUser() currentUser: User): Promise<SpWallet> {
+    return await this.walletService.computeServiceProviderWallet(
+      currentUser.id,
+    );
+  }
+
+  @Get('client')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.CLIENT)
+  @HttpCode(200)
+  async clientWallet(@CurrentUser() currentUser: User): Promise<ClientWallet> {
+    console.log(currentUser.id);
+    return await this.walletService.computeClientWallet(currentUser.id);
   }
 
   @Get('transaction')
@@ -48,6 +58,17 @@ export class WalletController {
       currentUser,
       paginationQueryDto,
     );
+  }
+
+  @Post('fund')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.CLIENT)
+  @HttpCode(200)
+  async fundWalletTransaction(
+    @CurrentUser() currentUser: User,
+    @Body() fundWalletDto: FundWalletDto,
+  ) {
+    return await this.walletService.fundWallet(fundWalletDto);
   }
 
   @Post('bank-account/add')

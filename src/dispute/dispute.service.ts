@@ -185,50 +185,50 @@ export class DisputeService {
     );
 
     if (dispute_resolve_action === DisputeResolveAction.PAY_SERVICE_PROVIDER) {
-      await this.walletService.updateWalletBalance({
-        user: serviceProvider,
-        transactionType: TransactionType.CREDIT,
-        amount: proposal.proposal_amount,
-        description: 'Dispute has been resolved and amount has been credited',
-        walletToUpdate: 'sp',
-        escrow: 0,
-        sendNotification: true,
-        sendEmail: true,
-        client,
-        serviceProvider,
-        serviceRequest,
-        notificationType: NotificationType.ACCOUNT_CREDIT,
-      });
-      await this.walletService.updateWalletBalance({
-        user: client,
-        transactionType: TransactionType.DEBIT,
-        amount: 0,
-        description: 'Dispute resolved and service provider has been credited',
-        walletToUpdate: 'client',
-        escrow: -proposal.amount,
-        sendNotification: false,
-        sendEmail: false,
-        client,
-        serviceProvider,
-        serviceRequest,
-        notificationType: NotificationType.ACCOUNT_DEBIT,
-      });
+      // await this.walletService.updateWalletBalance({
+      //   user: serviceProvider,
+      //   transactionType: TransactionType.CREDIT,
+      //   amount: proposal.proposal_amount,
+      //   description: 'Dispute has been resolved and amount has been credited',
+      //   walletToUpdate: 'sp',
+      //   escrow: 0,
+      //   sendNotification: true,
+      //   sendEmail: true,
+      //   client,
+      //   serviceProvider,
+      //   serviceRequest,
+      //   notificationType: NotificationType.ACCOUNT_CREDIT,
+      // });
+      // await this.walletService.updateWalletBalance({
+      //   user: client,
+      //   transactionType: TransactionType.DEBIT,
+      //   amount: 0,
+      //   description: 'Dispute resolved and service provider has been credited',
+      //   walletToUpdate: 'client',
+      //   escrow: -proposal.amount,
+      //   sendNotification: false,
+      //   sendEmail: false,
+      //   client,
+      //   serviceProvider,
+      //   serviceRequest,
+      //   notificationType: NotificationType.ACCOUNT_DEBIT,
+      // });
     }
     if (dispute_resolve_action === DisputeResolveAction.REFUND_CLIENT) {
-      await this.walletService.updateWalletBalance({
-        user: client,
-        transactionType: TransactionType.CREDIT,
-        amount: proposal.amount,
-        description: 'Dispute resolved and your money has been refunded',
-        walletToUpdate: 'client',
-        escrow: -proposal.amount,
-        sendNotification: true,
-        sendEmail: true,
-        client,
-        serviceProvider,
-        serviceRequest,
-        notificationType: NotificationType.ACCOUNT_CREDIT,
-      });
+      // await this.walletService.updateWalletBalance({
+      //   user: client,
+      //   transactionType: TransactionType.CREDIT,
+      //   amount: proposal.amount,
+      //   description: 'Dispute resolved and your money has been refunded',
+      //   walletToUpdate: 'client',
+      //   escrow: -proposal.amount,
+      //   sendNotification: true,
+      //   sendEmail: true,
+      //   client,
+      //   serviceProvider,
+      //   serviceRequest,
+      //   notificationType: NotificationType.ACCOUNT_CREDIT,
+      // });
     }
 
     return new ResponseMessage(

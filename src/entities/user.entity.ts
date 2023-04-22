@@ -9,7 +9,6 @@ import {
   ManyToMany,
   JoinTable,
   OneToMany,
-  OneToOne,
   AfterLoad,
   BaseEntity,
 } from 'typeorm';
@@ -148,23 +147,8 @@ export class User extends BaseEntity {
   @OneToMany(() => Proposal, (srp) => srp.service_provider)
   service_request_proposals: Proposal[];
 
-  @Column({ default: 0 })
-  sp_wallet_balance: number;
-
-  @Column({ default: 0 })
-  sp_wallet_escrow: number;
-
-  @Column({ default: 0 })
-  client_wallet_balance: number;
-
-  @Column({ default: 0 })
-  client_wallet_escrow: number;
-
   @OneToMany(() => BankAccount, (bankAccount) => bankAccount.user)
   bank_accounts: BankAccount[];
-
-  @OneToMany(() => Transaction, (transaction) => transaction.user)
-  transactions: Transaction[];
 
   @OneToMany(() => Rating, (rating) => rating.created_by)
   ratings: Rating[];

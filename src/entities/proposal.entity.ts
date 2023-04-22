@@ -46,9 +46,6 @@ export class Proposal extends SharedEntity {
   @Column({ nullable: true })
   invite_cancel_reason: string;
 
-  @Column({ nullable: true })
-  amount: number;
-
   @Column({ enum: ServiceRequestStatus, default: ServiceRequestStatus.INVITED })
   status: ServiceRequestStatus;
 

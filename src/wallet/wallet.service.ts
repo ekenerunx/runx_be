@@ -1,10 +1,13 @@
-import { TransactionType } from 'src/wallet/interfaces/transaction.interface';
-import { PartialType } from '@nestjs/swagger';
+import {
+  TransactionStatus,
+  TransactionType,
+} from 'src/wallet/interfaces/transaction.interface';
 import { Repository } from 'typeorm';
 import { Transaction } from './../entities/transaction.entity';
 import {
   HttpException,
   HttpStatus,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -16,17 +19,16 @@ import { CatchErrorException } from 'src/exceptions';
 import { PaymentProcessorService } from 'src/payment-processor/payment-processor.service';
 import { verifyNamesInString } from 'src/common/utils';
 import {
-  AcceptServiceRequestTransaction,
-  UpdateWalletBalance,
-  WalletBalance,
+  ClientWallet,
+  SettleFundWalletTransaction,
+  SpWallet,
 } from './interfaces/wallet.interface';
 import { PaginationResponse } from 'src/common/interface';
 import { paginate } from 'nestjs-typeorm-paginate';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
-import { NotificationService } from 'src/notification/notification.service';
-import { MessagingService } from 'src/messaging/messaging.service';
-import { EmailTemplate } from 'src/common/email-template';
-import { normalize } from 'path';
+import { Proposal } from 'src/entities/proposal.entity';
+import { FundWalletDto } from './dto/fund-wallet.dto';
+import * as Redis from 'ioredis';
 
 @Injectable()
 export class WalletService {
@@ -35,35 +37,10 @@ export class WalletService {
     private readonly transactionRepo: Repository<Transaction>,
     @InjectRepository(BankAccount)
     private readonly bankAccountRepo: Repository<BankAccount>,
-    @InjectRepository(User)
-    private readonly userRepo: Repository<User>,
-
     private readonly paymentProcessorService: PaymentProcessorService,
-
-    private readonly notificationService: NotificationService,
-    private readonly messagingService: MessagingService,
+    @Inject('REDIS_CLIENT')
+    private redis: Redis.Redis,
   ) {}
-
-  async getWalletBalance(currentUser): Promise<WalletBalance> {
-    try {
-      const user = await this.userRepo
-        .createQueryBuilder('user')
-        .where('user.id = :id', { id: currentUser.id })
-        .getOne();
-      return {
-        escrow: user.is_client
-          ? user.client_wallet_escrow
-          : user.sp_wallet_escrow,
-        funding_pending: 0,
-        withdrawable: 0,
-        available_balance: user.is_client
-          ? user.client_wallet_balance
-          : user.sp_wallet_balance,
-      };
-    } catch (error) {
-      throw new CatchErrorException(error);
-    }
-  }
 
   async transaction(
     currentUser,
@@ -83,8 +60,7 @@ export class WalletService {
 
   async createTransaction(__transaction: Partial<Transaction>) {
     const transaction = await this.transactionRepo.create(__transaction);
-    await this.transactionRepo.save(transaction);
-    return;
+    return await this.transactionRepo.save(transaction);
   }
 
   async addBankAccount(
@@ -167,79 +143,120 @@ export class WalletService {
     }
   }
 
-  async acceptServiceRequestTransaction(trx: AcceptServiceRequestTransaction) {
+  async computeClientWallet(clientId: string): Promise<ClientWallet> {
+    const walletKey = `wallet:${clientId}`;
+    const cachedWallet = await this.redis.get(walletKey);
+    if (cachedWallet) {
+      return JSON.parse(cachedWallet);
+    }
+    const transactions = await this.transactionRepo.find({
+      where: { client_id: clientId },
+    });
+    const { totalEscrow, totalFunding, totalWithdrawal } = transactions.reduce(
+      (totals, trnx) => {
+        if (trnx.tnx_type === TransactionType.ESCROW) {
+          totals.totalEscrow += trnx.amount;
+        }
+        if (trnx.tnx_type === TransactionType.WITHDRAWAL) {
+          totals.totalWithdrawal += trnx.amount;
+        }
+        if (trnx.tnx_type === TransactionType.FUNDING) {
+          totals.totalFunding += trnx.amount;
+        }
+        return totals;
+      },
+      { totalEscrow: 0, totalFunding: 0, totalWithdrawal: 0 },
+    );
+    const wallet = {
+      available_balance: totalFunding - (totalEscrow + totalWithdrawal),
+      escrow: totalEscrow,
+    };
+    await this.redis.set(walletKey, JSON.stringify(wallet), 'EX', 30);
+    return wallet;
+  }
+
+  async computeServiceProviderWallet(spId: string): Promise<SpWallet> {
+    const transactions = await this.transactionRepo.find({
+      where: { sp_id: spId },
+    });
+    let totalEscrow,
+      totalFunding,
+      totalWithdrawal,
+      totalHold = 0;
+    for (let i; i < transactions.length; i++) {
+      const trnx = transactions[i];
+      if (trnx.tnx_type === TransactionType.ESCROW) {
+        totalEscrow += trnx.amount;
+      }
+      if (trnx.tnx_type === TransactionType.HOLD) {
+        totalHold += trnx.amount;
+      }
+      if (trnx.tnx_type === TransactionType.FUNDING) {
+        totalFunding += trnx.amount;
+      }
+    }
+    const availableBalance = totalFunding + (totalWithdrawal - totalEscrow);
+    return {
+      available_balance: availableBalance,
+      escrow: totalEscrow,
+      hold: totalHold,
+    };
+  }
+
+  async acceptProposal(client: User, sp: User, proposal: Proposal) {
+    const clientWallet = await this.computeClientWallet(client.id);
+    if (proposal.proposal_amount > clientWallet.available_balance) {
+      throw new HttpException(
+        'Insufficient available wallet balance to accept proposal',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    return await this.createTransaction({
+      client_id: client.id,
+      sp_id: sp.id,
+      proposal_id: proposal.id,
+      amount: proposal.proposal_amount,
+      tnx_type: TransactionType.ESCROW,
+    });
+  }
+
+  async fundWallet(fundWalletDto: FundWalletDto): Promise<Transaction> {
     try {
-      const transaction = await this.transactionRepo.create(trx);
-      await this.transactionRepo.save(transaction);
-      return;
+      const trnx = await this.transactionRepo.findOne({
+        where: { reference: fundWalletDto.reference },
+      });
+      if (trnx) {
+        throw new HttpException(
+          'Transaction with reference exist',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      return await this.createTransaction({
+        ...fundWalletDto,
+        tnx_type: TransactionType.FUNDING,
+        status: TransactionStatus.NOT_SETTLED,
+      });
     } catch (error) {
       throw new CatchErrorException(error);
     }
   }
 
-  async updateWalletBalance({
-    user,
-    amount,
-    walletToUpdate,
-    escrow,
-    transactionType,
-    description,
-    sendNotification,
-    sendEmail,
-    serviceRequest,
-    serviceProvider,
-    client,
-    notificationType,
-  }: UpdateWalletBalance) {
-    const isClient = walletToUpdate === 'client';
-    const clientBalance = user.client_wallet_balance + amount;
-    const spBalance = user.sp_wallet_balance + amount;
-    const balanceFields = isClient
-      ? {
-          client_wallet_balance: clientBalance,
-          client_wallet_escrow: user.client_wallet_escrow + escrow,
-        }
-      : {
-          sp_wallet_balance: spBalance,
-          sp_wallet_escrow: user.sp_wallet_escrow + escrow,
-        };
-    const updatedRecord = await this.userRepo
-      .createQueryBuilder()
-      .update(User)
-      .set(balanceFields)
-      .where('id = :id', { id: user.id })
-      .returning('*')
-      .execute();
-
-    //addd to Transaction
-    this.createTransaction({
-      description,
-      amount,
-      bal_after: isClient ? clientBalance : spBalance,
-      tnx_type: transactionType,
-      user,
+  async settleFundWalletTransaction(
+    payload: SettleFundWalletTransaction,
+  ): Promise<Transaction> {
+    const trnx = await this.transactionRepo.findOne({
+      where: { reference: payload.reference },
     });
-    if (sendNotification) {
-      //send Notification
-      await this.notificationService.sendNotification({
-        type: notificationType,
-        subject: `${normalize(notificationType)}`,
-        owner: user,
-        service_provider: serviceProvider,
-        service_request: serviceRequest,
-        client: client,
-        ...(amount > 0
-          ? {
-              credit_amount: amount,
-            }
-          : { debit_amount: amount }),
+    if (trnx) {
+      return await this.transactionRepo.save({
+        ...trnx,
+        status: TransactionStatus.SETTLED,
       });
-    }
-    if (sendEmail) {
-      await this.messagingService.sendEmail(
-        EmailTemplate.transactionUpdate({ user, amount, transactionType }),
+    } else {
+      throw new HttpException(
+        'Transaction reference not found',
+        HttpStatus.BAD_REQUEST,
       );
     }
-    return updatedRecord.raw[0];
   }
 }

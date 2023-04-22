@@ -1,11 +1,13 @@
 import { SharedEntity } from './shared.entity';
-import { Column, Entity, JoinTable, OneToOne, ManyToOne } from 'typeorm';
-import { TransactionType } from 'src/wallet/interfaces/transaction.interface';
-import { User } from './user.entity';
+import { Column, Entity, Index } from 'typeorm';
+import {
+  TransactionStatus,
+  TransactionType,
+} from 'src/wallet/interfaces/transaction.interface';
 
 @Entity()
 export class Transaction extends SharedEntity {
-  @Column()
+  @Column({ nullable: true })
   description: string;
 
   @Column()
@@ -14,12 +16,24 @@ export class Transaction extends SharedEntity {
   @Column({ default: 'NGN', nullable: true })
   curr_code: string;
 
-  @Column()
-  bal_after: number;
-
-  @Column({ enum: TransactionType })
+  @Column({ type: 'enum', enum: TransactionType, nullable: true })
   tnx_type: TransactionType;
 
-  @ManyToOne(() => User, (user) => user.transactions)
-  user: User;
+  @Column({ nullable: true })
+  @Index()
+  client_id: string;
+
+  @Index()
+  @Column({ nullable: true })
+  sp_id: string;
+
+  @Column({ nullable: true })
+  proposal_id: string;
+
+  @Column({ nullable: true })
+  @Index()
+  reference: string;
+
+  @Column({ type: 'enum', enum: TransactionStatus, nullable: true })
+  status: TransactionStatus;
 }
