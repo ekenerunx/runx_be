@@ -17,6 +17,6 @@ import { System } from 'src/entities/system.entity';
   ],
   controllers: [SystemController],
   providers: [ServiceTypesService, SystemService],
-  exports: [ServiceTypesService],
+  exports: [SystemService],
 })
 export class SystemModule {}

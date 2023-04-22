@@ -9,6 +9,7 @@ import { MessagingModule } from 'src/messaging/messaging.module';
 import { BullModule } from '@nestjs/bull';
 import { PROPOSAL_QUEUE } from './proposal.constant';
 import { ProposalConsumer } from './proposal.consumer';
+import { SystemModule } from 'src/system/system.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ProposalConsumer } from './proposal.consumer';
     TypeOrmModule.forFeature([Proposal]),
     WalletModule,
     BullModule.registerQueue({ name: PROPOSAL_QUEUE }),
+    SystemModule,
   ],
   controllers: [ProposalController],
   providers: [ProposalService, ProposalConsumer],

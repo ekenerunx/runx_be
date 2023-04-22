@@ -30,6 +30,20 @@ export class SystemController {
     return { serviceTypes, countries };
   }
 
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.ADMIN)
+  @Patch()
+  async updateSystem(@Body() updateSystemDto: UpdateSystemDto) {
+    return await this.systemService.updateSystem(updateSystemDto);
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.ADMIN)
+  @Get()
+  async getSystem() {
+    return await this.systemService.getSystem();
+  }
+
   @Get('supported-banks')
   async getSupportedBanks(
     @Query() supportedBanksQueryDto: SupportedBankQueryDto,
@@ -49,12 +63,5 @@ export class SystemController {
   @Post('seed-user')
   async seedUsers(@Body() registerUserDto: RegisterUserDto) {
     return this.systemService.seedUser(registerUserDto);
-  }
-
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRoles.ADMIN)
-  @Patch('update-system')
-  async updateSystem(@Body() updateSystemDto: UpdateSystemDto) {
-    return await this.systemService.updateSystem(updateSystemDto);
   }
 }

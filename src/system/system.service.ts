@@ -78,4 +78,22 @@ export class SystemService {
       throw new CatchErrorException(error);
     }
   }
+
+  async getSystem() {
+    try {
+      const system = await this.systemRepo.findOne({ where: { system_id: 1 } });
+      if (system) {
+        return system;
+      } else {
+        const initSystem = await this.systemRepo.create({
+          system_id: 1,
+          allow_withrawal: true,
+          service_fee: 2000.0,
+        });
+        return await this.systemRepo.save(initSystem);
+      }
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
+  }
 }
