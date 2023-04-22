@@ -1,7 +1,8 @@
 import { COUNTRIES } from './../constant/countries.constant';
-import { Body, Controller, Query } from '@nestjs/common';
+import { Body, Controller, Query, UseGuards } from '@nestjs/common';
 import {
   Get,
+  Patch,
   Post,
 } from '@nestjs/common/decorators/http/request-mapping.decorator';
 import { PaymentProcessorService } from 'src/payment-processor/payment-processor.service';
@@ -9,6 +10,11 @@ import { ServiceTypesService } from 'src/services-types/service-types.service';
 import { SupportedBankQueryDto } from './dto/support-banks.query.dto';
 import { RegisterUserDto } from 'src/users/dto/register-user.dto';
 import { SystemService } from './system.service';
+import { UpdateSystemDto } from './dto/update-system.dto';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guide';
+import { RoleGuard } from 'src/guards/role.guard';
+import { UserRoles } from 'src/users/interfaces/user.interface';
+import { Roles } from 'src/decorators/roles.decorator';
 @Controller('system')
 export class SystemController {
   constructor(
@@ -43,5 +49,12 @@ export class SystemController {
   @Post('seed-user')
   async seedUsers(@Body() registerUserDto: RegisterUserDto) {
     return this.systemService.seedUser(registerUserDto);
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.ADMIN)
+  @Patch('update-system')
+  async updateSystem(@Body() updateSystemDto: UpdateSystemDto) {
+    return await this.systemService.updateSystem(updateSystemDto);
   }
 }

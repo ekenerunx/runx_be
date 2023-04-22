@@ -11,6 +11,10 @@ import { getRandomEnumValue } from 'src/common/utils/random-enum.util';
 import { Gender } from 'src/users/interfaces/user.interface';
 import * as _ from 'lodash';
 import { COUNTRIES } from 'src/constant/countries.constant';
+import { UpdateSystemDto } from './dto/update-system.dto';
+import { System } from 'src/entities/system.entity';
+import { ResponseMessage } from 'src/common/interface/success-message.interface';
+import { CatchErrorException } from 'src/exceptions';
 
 @Injectable()
 export class SystemService {
@@ -19,6 +23,7 @@ export class SystemService {
     @InjectRepository(ServiceType)
     private readonly stRepo: Repository<ServiceType>,
     private readonly userService: UsersService,
+    @InjectRepository(System) private readonly systemRepo: Repository<System>,
   ) {}
   async seedUser(registerUserDto: RegisterUserDto) {
     const __serviceTypes = await this.stRepo.find({});
@@ -49,5 +54,28 @@ export class SystemService {
       loc_lga: lga,
     };
     return await this.userRepo.create(newUser);
+  }
+
+  async updateSystem(updateSystemDto: UpdateSystemDto) {
+    try {
+      const system = await this.systemRepo.findOne({ where: { system_id: 1 } });
+      if (system) {
+        for (const key in updateSystemDto) {
+          system[key] = updateSystemDto[key];
+        }
+        await this.systemRepo.save(system);
+      } else {
+        const initSystem = await this.systemRepo.create({
+          system_id: 1,
+          allow_withrawal: true,
+          service_fee: 2000.0,
+          ...updateSystemDto,
+        });
+        await this.systemRepo.save(initSystem);
+      }
+      return new ResponseMessage('System successfully updated');
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
   }
 }

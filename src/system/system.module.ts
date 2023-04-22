@@ -7,10 +7,11 @@ import { PaymentProcessorModule } from 'src/payment-processor/payment-processor.
 import { SystemService } from './system.service';
 import { User } from 'src/entities/user.entity';
 import { UsersModule } from 'src/users/users.module';
+import { System } from 'src/entities/system.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ServiceType, User]),
+    TypeOrmModule.forFeature([ServiceType, User, System]),
     PaymentProcessorModule,
     UsersModule,
   ],
