@@ -22,60 +22,6 @@ import { InitProposalDto } from './dto/init-proposal.dto';
 export class ProposalController {
   constructor(private readonly proposalService: ProposalService) {}
 
-  @Post('send')
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRoles.SERVICE_PROVIDER)
-  async sendProposal(
-    @CurrentUser() currentUser: User,
-    @Body() sendProposalDto: SendProposalDto,
-    @Param('serviceRequestId') serviceRequestId: string,
-  ) {
-    return await this.proposalService.sendProposal(
-      currentUser,
-      serviceRequestId,
-      sendProposalDto,
-    );
-  }
-
-  @Post('accept')
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRoles.CLIENT)
-  @HttpCode(200)
-  async acceptProposal(
-    @CurrentUser() currentUser: User,
-    @Body() acceptProposalDto: AcceptProposalDto,
-    @Param('serviceRequestId') serviceRequestId: string,
-  ) {
-    return await this.proposalService.acceptProposal(
-      currentUser,
-      serviceRequestId,
-      acceptProposalDto,
-    );
-  }
-
-  @Post('complete')
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRoles.SERVICE_PROVIDER)
-  @HttpCode(200)
-  async completeProposal(
-    @CurrentUser() currentUser: User,
-    @Body() completeProposalDto: CompleteProposalDto,
-    @Param('serviceRequestId') serviceRequestId: string,
-  ) {
-    return await this.proposalService.completeProposal(
-      currentUser,
-      serviceRequestId,
-      completeProposalDto,
-    );
-  }
-
-  @Post('start')
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @HttpCode(200)
-  async startProposal(@Param('proposalId') proposalId: string) {
-    return await this.proposalService.startProposal(proposalId);
-  }
-
   @Post('/init')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRoles.SERVICE_PROVIDER)
@@ -88,5 +34,55 @@ export class ProposalController {
       currentUser,
       initProposalDto,
     );
+  }
+
+  @Post('send')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.SERVICE_PROVIDER)
+  async sendProposal(
+    @CurrentUser() currentUser: User,
+    @Body() sendProposalDto: SendProposalDto,
+  ) {
+    return await this.proposalService.sendProposal(
+      currentUser,
+
+      sendProposalDto,
+    );
+  }
+
+  @Post('accept')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.CLIENT)
+  @HttpCode(200)
+  async acceptProposal(
+    @CurrentUser() currentUser: User,
+    @Body() acceptProposalDto: AcceptProposalDto,
+  ) {
+    return await this.proposalService.acceptProposal(
+      currentUser,
+
+      acceptProposalDto,
+    );
+  }
+
+  @Post('complete')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.SERVICE_PROVIDER)
+  @HttpCode(200)
+  async completeProposal(
+    @CurrentUser() currentUser: User,
+    @Body() completeProposalDto: CompleteProposalDto,
+  ) {
+    return await this.proposalService.completeProposal(
+      currentUser,
+      completeProposalDto,
+    );
+  }
+
+  @Post('start')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @HttpCode(200)
+  async startProposal(@Param('proposalId') proposalId: string) {
+    return await this.proposalService.startProposal(proposalId);
   }
 }

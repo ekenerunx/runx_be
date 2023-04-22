@@ -21,7 +21,6 @@ export class NotificationService {
     try {
       const __note = await this.noteRepo.create(notification);
       await this.noteRepo.save(__note);
-      console.log('I got here', { __note });
       return;
     } catch (error) {
       throw new CatchErrorException(error);

@@ -146,15 +146,11 @@ export class ProposalService {
       throw new CatchErrorException(error);
     }
   }
-  async sendProposal(
-    currentUser: User,
-    serviceRequestId: string,
-    sendProposalDto: SendProposalDto,
-  ) {
+  async sendProposal(currentUser: User, sendProposalDto: SendProposalDto) {
     try {
-      const { amount } = sendProposalDto;
+      const { amount, service_request_id, service_fee } = sendProposalDto;
       const proposal = await this.getProposalBySRSP(
-        serviceRequestId,
+        service_request_id,
         currentUser.id,
       );
       const serviceRequest = proposal.service_request;
@@ -185,6 +181,7 @@ export class ProposalService {
       proposal.proposal_date = new Date();
       proposal.amount = amount;
       proposal.proposal_amount = amount;
+      proposal.proposal_service_fee = service_fee;
       proposal.service_request = serviceRequest;
       await this.proposalRepo.save(proposal);
       //send sample email to client
@@ -212,13 +209,12 @@ export class ProposalService {
   }
   async acceptProposal(
     currentUser: User,
-    serviceRequestId: string,
     acceptProposalDto: AcceptProposalDto,
   ) {
     try {
-      const { service_provider_id } = acceptProposalDto;
+      const { service_provider_id, service_request_id } = acceptProposalDto;
       const proposal = await this.getProposalBySRSP(
-        serviceRequestId,
+        service_request_id,
         service_provider_id,
       );
       const serviceRequest = proposal.service_request;
@@ -319,7 +315,6 @@ export class ProposalService {
   }
   async completeProposal(
     currentUser: User,
-    serviceRequestId: string,
     completeProposalDto: CompleteProposalDto,
   ) {
     const {
@@ -330,10 +325,11 @@ export class ProposalService {
       job_complete_file_4,
       job_complete_file_5,
       job_complete_file_6,
+      service_request_id,
     } = completeProposalDto;
 
     const proposal = await this.getProposalBySRSP(
-      serviceRequestId,
+      service_request_id,
       currentUser.id,
     );
     const serviceRequest = proposal.service_request;
