@@ -13,6 +13,12 @@ export class Transaction extends SharedEntity {
   @Column()
   amount: number;
 
+  @Column({ nullable: true })
+  total_amount: number;
+
+  @Column({ nullable: true })
+  service_fee: number;
+
   @Column({ default: 'NGN', nullable: true })
   curr_code: string;
 
@@ -33,6 +39,15 @@ export class Transaction extends SharedEntity {
   @Column({ nullable: true })
   @Index()
   reference: string;
+
+  @Column({ nullable: true })
+  hold_date: Date;
+
+  @Column({ nullable: true })
+  paid_sp_date: Date;
+
+  @Column({ nullable: true })
+  client_reversed_date: Date;
 
   @Column({ type: 'enum', enum: TransactionStatus, nullable: true })
   status: TransactionStatus;

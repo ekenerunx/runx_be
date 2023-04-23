@@ -65,9 +65,6 @@ export class Proposal extends SharedEntity {
   proposal_amount: number;
 
   @Column({ nullable: true })
-  amount_paid: number;
-
-  @Column({ nullable: true })
   amount_paid_date: Date;
 
   @Column({ nullable: true })

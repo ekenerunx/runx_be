@@ -17,6 +17,7 @@ import { UserRoles } from 'src/users/interfaces/user.interface';
 import { AcceptProposalDto } from './dto/accept-proposal.dto';
 import { SendProposalDto } from './dto/send-proposal.dto';
 import { InitProposalDto } from './dto/init-proposal.dto';
+import { PayServiceProviderDto } from './dto/pay-sp.dto';
 
 @Controller('proposal')
 export class ProposalController {
@@ -75,6 +76,20 @@ export class ProposalController {
     return await this.proposalService.completeProposal(
       currentUser,
       completeProposalDto,
+    );
+  }
+
+  @Post('pay-sp')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.SERVICE_PROVIDER)
+  @HttpCode(200)
+  async payServiceProvider(
+    @CurrentUser() currentUser: User,
+    @Body() payServiceProviderDto: PayServiceProviderDto,
+  ) {
+    return await this.proposalService.payServiceProvider(
+      currentUser,
+      payServiceProviderDto,
     );
   }
 

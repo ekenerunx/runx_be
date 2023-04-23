@@ -183,12 +183,10 @@ export class ServiceRequestService {
         return { ...prev, [item.toLowerCase()]: 0 };
       }, {}),
     };
-
     for (const item of result) {
       const status = item.status ? item.status.toLowerCase() : 'unknown';
       groupedRequests[status] = item.count || 10;
     }
-
     return groupedRequests;
   }
 

@@ -32,7 +32,7 @@ export class NotificationService {
       const notes = await notifications.map((notification) => {
         return this.noteRepo.create(notification);
       });
-      await this.noteRepo.save(notes);
+      return await this.noteRepo.save(notes);
     } catch (error) {
       throw new CatchErrorException(error);
     }

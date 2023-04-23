@@ -105,6 +105,10 @@ export class InviteService {
         return proposal;
       });
       await this.proposalService.updateProposals(proposals);
+      await this.serviceRequestService.updateServiceRequest({
+        ...serviceRequest,
+        status: ServiceRequestStatus.INVITED,
+      });
       // send invitation email
 
       await this.notificationService.sendNotifications(

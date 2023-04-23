@@ -5,6 +5,7 @@ import { startProposal } from './start-proposal';
 import { raiseDispute } from './raise-dispute';
 import { transactionUpdate } from './transaction-update';
 import { resolveDispute } from './resolve-dispute';
+import { fundReleasedByClient } from './fun-relased-by-client';
 
 export const EmailTemplate = {
   sendProposal,
@@ -14,4 +15,5 @@ export const EmailTemplate = {
   raiseDispute,
   transactionUpdate,
   resolveDispute,
+  fundReleasedByClient,
 };

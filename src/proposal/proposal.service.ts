@@ -1,3 +1,4 @@
+import { ServiceRequest } from 'src/entities/service-request.entity';
 import { InitProposalDto } from './dto/init-proposal.dto';
 import {
   HttpException,
@@ -28,6 +29,7 @@ import { AcceptProposalDto } from './dto/accept-proposal.dto';
 import { SendProposalDto } from './dto/send-proposal.dto';
 import { SystemService } from 'src/system/system.service';
 import { ServiceRequestService } from 'src/service-request/service-request.service';
+import { PayServiceProviderDto } from './dto/pay-sp.dto';
 
 @Injectable()
 export class ProposalService {
@@ -173,6 +175,12 @@ export class ProposalService {
           HttpStatus.BAD_REQUEST,
         );
       }
+      if (!proposal.invoice_id) {
+        throw new HttpException(
+          'Initialise invoice before sending proposal',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
       if (proposal.proposal_date) {
         throw new HttpException(
           'Proposal already sent to client',
@@ -219,6 +227,15 @@ export class ProposalService {
         service_provider_id,
       );
       const serviceRequest = proposal.service_request;
+      const serviceProvider = proposal.service_provider;
+      const client = proposal.service_request.created_by;
+
+      if (client.id !== currentUser.id) {
+        return new HttpException(
+          'You are not the owner of the service request',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
       // check service request in progress
       if (
         ['COMPLETED', 'PENDING', 'AWAITING_PAYMENT', 'IN_PROGRESS'].includes(
@@ -237,8 +254,6 @@ export class ProposalService {
           HttpStatus.BAD_REQUEST,
         );
       }
-      const serviceProvider = proposal.service_provider;
-      const client = proposal.service_request.created_by;
 
       // accept proposal wallet action
       await this.walletService.acceptProposal(
@@ -325,9 +340,14 @@ export class ProposalService {
         HttpStatus.CONFLICT,
       );
     }
+
     const serviceProvider = proposal.service_provider;
     const client = proposal.service_request.created_by;
-    proposal.proposal_accept_date = new Date();
+    await this.walletService.completeProposal(
+      client,
+      serviceProvider,
+      proposal,
+    );
     proposal.status = ServiceRequestStatus.PENDING;
     proposal.service_request = serviceRequest;
     proposal.job_complete_note = job_complete_note;
@@ -337,6 +357,7 @@ export class ProposalService {
     proposal.job_complete_file_4 = job_complete_file_4;
     proposal.job_complete_file_5 = job_complete_file_5;
     proposal.job_complete_file_6 = job_complete_file_6;
+    proposal.job_complete_date = new Date();
     serviceRequest.status = ServiceRequestStatus.COMPLETED;
     await this.serviceRequestService.updateServiceRequest({
       ...serviceRequest,
@@ -361,7 +382,79 @@ export class ProposalService {
         client,
       }),
     );
-    return new ResponseMessage('Service request have been marked as completed');
+    return new ResponseMessage(
+      'Service request have been marked as completed await client to release payment',
+    );
+  }
+
+  async payServiceProvider(
+    currentUser: User,
+    payServiceProviderDto: PayServiceProviderDto,
+  ) {
+    const { service_provider_id, service_request_id } = payServiceProviderDto;
+    const proposal = await this.getProposalBySRSP(
+      service_request_id,
+      service_provider_id,
+    );
+    const serviceProvider = proposal.service_provider;
+    const serviceRequest = proposal.service_request;
+    const client = proposal.service_request.created_by;
+
+    if (client.id !== currentUser.id) {
+      return new HttpException(
+        'You are not the owner of the service request',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    if (!proposal.job_complete_date) {
+      return new HttpException(
+        'You can only make payment when service provider mark job as completed',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (!proposal.job_complete_date) {
+      return new HttpException(
+        'You can only make payment when service provider mark job as completed',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (proposal.amount_paid_date) {
+      return new HttpException(
+        'Service provider already paid',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    await this.walletService.payServiceProvider(
+      client,
+      serviceProvider,
+      proposal,
+    );
+
+    proposal.amount_paid_date = new Date();
+
+    await this.proposalRepo.save(proposal);
+
+    // send Notification
+    await this.notificationService.sendNotification({
+      type: NotificationType.CLIENT_RELEASED_FUND,
+      service_provider: serviceProvider,
+      service_request: serviceRequest,
+      subject:
+        'Service Request has been started aceeptte as completed and your fund has been paid',
+      owner: serviceProvider,
+    });
+
+    //send email to service provider
+    await this.messagingService.sendEmail(
+      EmailTemplate.fundReleasedByClient({
+        email: serviceProvider.email,
+        serviceRequest,
+        sp: serviceProvider,
+        firstName: serviceProvider.first_name,
+      }),
+    );
   }
 
   async startProposal(proposalId: string) {

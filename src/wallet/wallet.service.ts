@@ -164,7 +164,7 @@ export class WalletService {
           trnx.tnx_type === TransactionType.ESCROW &&
           trnx.status !== TransactionStatus.REVERSED_TO_CLIENT
         ) {
-          totals.totalEscrow += trnx.amount;
+          totals.totalEscrow += trnx.total_amount;
         }
         if (
           trnx.tnx_type === TransactionType.WITHDRAWAL &&
@@ -302,7 +302,9 @@ export class WalletService {
       client_id: client.id,
       sp_id: sp.id,
       proposal_id: proposal.id,
-      amount: proposal.proposal_amount + proposal.proposal_service_fee,
+      amount: proposal.proposal_amount,
+      total_amount: proposal.proposal_amount + proposal.proposal_service_fee,
+      service_fee: proposal.proposal_service_fee,
       tnx_type: TransactionType.ESCROW,
       status: TransactionStatus.NOT_SETTLED,
     });
@@ -315,6 +317,29 @@ export class WalletService {
     return await this.transactionRepo.save({
       ...trnx,
       status: TransactionStatus.HOLD,
+      hold_date: new Date(),
+    });
+  }
+
+  async reverseEscrowToClient(client: User, sp: User, proposal: Proposal) {
+    const trnx = await this.transactionRepo.findOne({
+      where: { client_id: client.id, sp_id: sp.id, proposal_id: proposal.id },
+    });
+    return await this.transactionRepo.save({
+      ...trnx,
+      status: TransactionStatus.REVERSED_TO_CLIENT,
+      client_reversed_date: new Date(),
+    });
+  }
+
+  async payServiceProvider(client: User, sp: User, proposal: Proposal) {
+    const trnx = await this.transactionRepo.findOne({
+      where: { client_id: client.id, sp_id: sp.id, proposal_id: proposal.id },
+    });
+    return await this.transactionRepo.save({
+      ...trnx,
+      status: TransactionStatus.PAID_SERVICE_PROVIDER,
+      paid_sp_date: new Date(),
     });
   }
 
