@@ -69,12 +69,12 @@ export class WalletService {
   ): Promise<Partial<BankAccount>> {
     try {
       const { account_number, bank_code } = addBankAccountDto;
-
       const serverBankAccount =
         await this.paymentProcessorService.verifyBankAccountNumber(
           account_number,
           bank_code,
         );
+
       const isMatchedNames = verifyNamesInString(
         serverBankAccount.data.account_name,
         currentUser.first_name,
@@ -144,11 +144,11 @@ export class WalletService {
   }
 
   async computeClientWallet(clientId: string): Promise<ClientWallet> {
-    const walletKey = `wallet:client:${clientId}`;
-    const cachedWallet = await this.redis.get(walletKey);
-    if (cachedWallet) {
-      return JSON.parse(cachedWallet);
-    }
+    // const walletKey = `wallet:client:${clientId}`;
+    // const cachedWallet = await this.redis.get(walletKey);
+    // if (cachedWallet) {
+    //   return JSON.parse(cachedWallet);
+    // }
     const transactions = await this.transactionRepo.find({
       where: { client_id: clientId },
     });
@@ -158,13 +158,22 @@ export class WalletService {
       totalWithdrawn,
       totalPendingFunding,
       totalPendingWithdrawal,
+      totalServiceProviderPaid,
     } = transactions.reduce(
       (totals, trnx) => {
         if (
           trnx.tnx_type === TransactionType.ESCROW &&
-          trnx.status !== TransactionStatus.REVERSED_TO_CLIENT
+          [TransactionStatus.NOT_SETTLED, TransactionStatus.HOLD].includes(
+            trnx.status,
+          )
         ) {
           totals.totalEscrow += trnx.total_amount;
+        }
+        if (
+          trnx.tnx_type === TransactionType.ESCROW &&
+          trnx.status === TransactionStatus.PAID_SERVICE_PROVIDER
+        ) {
+          totals.totalServiceProviderPaid += trnx.total_amount;
         }
         if (
           trnx.tnx_type === TransactionType.WITHDRAWAL &&
@@ -205,24 +214,29 @@ export class WalletService {
         totalReversed: 0,
         totalPendingFunding: 0,
         totalPendingWithdrawal: 0,
+        totalServiceProviderPaid: 0,
       },
     );
     const wallet = {
       available_balance:
-        totalFunding - (totalEscrow + totalWithdrawn + totalPendingWithdrawal),
+        totalFunding -
+        (totalEscrow +
+          totalWithdrawn +
+          totalPendingWithdrawal +
+          totalServiceProviderPaid),
       escrow: totalEscrow,
       totalPendingFunding,
     };
-    await this.redis.set(walletKey, JSON.stringify(wallet), 'EX', 30);
+    // await this.redis.set(walletKey, JSON.stringify(wallet), 'EX', 30);
     return wallet;
   }
 
   async computeServiceProviderWallet(spId: string): Promise<SpWallet> {
-    const walletKey = `wallet:sp:${spId}`;
-    const cachedWallet = await this.redis.get(walletKey);
-    if (cachedWallet) {
-      return JSON.parse(cachedWallet);
-    }
+    // const walletKey = `wallet:sp:${spId}`;
+    // const cachedWallet = await this.redis.get(walletKey);
+    // if (cachedWallet) {
+    //   return JSON.parse(cachedWallet);
+    // }
     const transactions = await this.transactionRepo.find({
       where: { sp_id: spId },
     });
@@ -286,7 +300,7 @@ export class WalletService {
       escrow: totalEscrow,
       hold: totalHold,
     };
-    await this.redis.set(walletKey, JSON.stringify(wallet), 'EX', 30);
+    // await this.redis.set(walletKey, JSON.stringify(wallet), 'EX', 30);
     return wallet;
   }
 

@@ -31,6 +31,7 @@ export class PaymentProcessorService {
       const response = await firstValueFrom(
         this.httpService.request<T>(options),
       );
+      console.log('response', response);
       return response.data;
     } catch (error) {
       throw new CatchErrorException(error);
@@ -41,8 +42,12 @@ export class PaymentProcessorService {
     bankAccount: string,
     bankCode: string,
   ): Promise<VerifyBankAccount> {
-    const url = `/bank/resolve?account_number=${bankAccount}&bank_code=${bankCode}`;
-    return await this.paystackHttps<VerifyBankAccount>('GET', url);
+    try {
+      const url = `bank/resolve?account_number=${bankAccount}&bank_code=${bankCode}`;
+      return await this.paystackHttps<VerifyBankAccount>('GET', url);
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
   }
 
   async getSupportedBanks(country: SupportedCountries) {

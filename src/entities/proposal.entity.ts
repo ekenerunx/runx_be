@@ -46,7 +46,11 @@ export class Proposal extends SharedEntity {
   @Column({ nullable: true })
   invite_cancel_reason: string;
 
-  @Column({ enum: ServiceRequestStatus, default: ServiceRequestStatus.INVITED })
+  @Column({
+    type: 'enum',
+    enum: ServiceRequestStatus,
+    default: ServiceRequestStatus.INVITED,
+  })
   status: ServiceRequestStatus;
 
   @Column({ nullable: true })
@@ -82,7 +86,7 @@ export class Proposal extends SharedEntity {
   @Column({ nullable: true })
   dispute_reason: string;
 
-  @Column({ enum: DisputeStatus, nullable: true })
+  @Column({ type: 'enum', enum: DisputeStatus, nullable: true })
   dispute_status: DisputeStatus;
 
   @Column({ nullable: true })

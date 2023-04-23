@@ -348,7 +348,6 @@ export class ProposalService {
       serviceProvider,
       proposal,
     );
-    proposal.status = ServiceRequestStatus.PENDING;
     proposal.service_request = serviceRequest;
     proposal.job_complete_note = job_complete_note;
     proposal.job_complete_file_1 = job_complete_file_1;
@@ -358,6 +357,7 @@ export class ProposalService {
     proposal.job_complete_file_5 = job_complete_file_5;
     proposal.job_complete_file_6 = job_complete_file_6;
     proposal.job_complete_date = new Date();
+    proposal.status = ServiceRequestStatus.COMPLETED;
     serviceRequest.status = ServiceRequestStatus.COMPLETED;
     await this.serviceRequestService.updateServiceRequest({
       ...serviceRequest,
@@ -433,9 +433,8 @@ export class ProposalService {
     );
 
     proposal.amount_paid_date = new Date();
-
+    proposal.status = ServiceRequestStatus.COMPLETED;
     await this.proposalRepo.save(proposal);
-
     // send Notification
     await this.notificationService.sendNotification({
       type: NotificationType.CLIENT_RELEASED_FUND,
@@ -455,6 +454,7 @@ export class ProposalService {
         firstName: serviceProvider.first_name,
       }),
     );
+    return new ResponseMessage('Service provider successfully paid');
   }
 
   async startProposal(proposalId: string) {
