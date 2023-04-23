@@ -55,7 +55,7 @@ export class Proposal extends SharedEntity {
   @Column({ nullable: true })
   invoice_id: string;
 
-  @Column({ type: 'float', nullable: true })
+  @Column({ nullable: true })
   proposal_accept_date: Date;
 
   @Column({ nullable: true })

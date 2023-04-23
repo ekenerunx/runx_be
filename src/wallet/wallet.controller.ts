@@ -68,7 +68,7 @@ export class WalletController {
     @CurrentUser() currentUser: User,
     @Body() fundWalletDto: FundWalletDto,
   ) {
-    return await this.walletService.fundWallet(fundWalletDto);
+    return await this.walletService.fundWallet(currentUser, fundWalletDto);
   }
 
   @Post('bank-account/add')

@@ -6,6 +6,7 @@ export interface SpWallet {
 export interface ClientWallet {
   escrow: number;
   available_balance: number;
+  totalPendingFunding: number;
 }
 
 export interface SettleFundWalletTransaction {

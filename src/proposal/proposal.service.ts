@@ -18,7 +18,6 @@ import { NotificationService } from 'src/notification/notification.service';
 import { CompleteProposalDto } from 'src/proposal/dto/complete-proposal.dto';
 import { ServiceRequestStatus } from 'src/service-request/interfaces/service-requests.interface';
 import { getMillisecondsDifference } from 'src/service-request/service-request.util';
-import { TransactionType } from 'src/wallet/interfaces/transaction.interface';
 import { WalletService } from 'src/wallet/wallet.service';
 import { Repository } from 'typeorm';
 import { InjectQueue } from '@nestjs/bull';
@@ -208,6 +207,7 @@ export class ProposalService {
       throw new CatchErrorException(error);
     }
   }
+
   async acceptProposal(
     currentUser: User,
     acceptProposalDto: AcceptProposalDto,
@@ -230,48 +230,22 @@ export class ProposalService {
           HttpStatus.CONFLICT,
         );
       }
-      // const wallet = await this.walletService.getWalletBalance(currentUser);
+
       if (!proposal.proposal_date) {
         return new HttpException(
           'Service provider have not sent proposal yet',
           HttpStatus.BAD_REQUEST,
         );
       }
-      // if (
-      //   wallet.available_balance < proposal.proposal_amount
-      //   // wallet.available_balance < proposal.proposal_amount
-      // ) {
-      //   throw new HttpException(
-      //     'You do not have sufficient balance to accept this proposal',
-      //     HttpStatus.BAD_REQUEST,
-      //   );
-      // }
-      // const balAfter = wallet.available_balance - proposal.proposal_amount;
-      // await this.walletService.acceptServiceRequestTransaction({
-      //   description: serviceRequest.description,
-      //   amount: proposal.proposal_amount,
-      //   bal_after: balAfter,
-      //   tnx_type: TransactionType.DEBIT,
-      //   user: currentUser,
-      //   is_client: true,
-      //   is_sp: true,
-      // });
       const serviceProvider = proposal.service_provider;
       const client = proposal.service_request.created_by;
-      // await this.walletService.updateWalletBalance({
-      //   user: currentUser,
-      //   transactionType: TransactionType.DEBIT,
-      //   amount: proposal.proposal_amount,
-      //   description: 'Account is debited with and placed in escrow',
-      //   walletToUpdate: 'client',
-      //   escrow: proposal.amount,
-      //   sendNotification: true,
-      //   sendEmail: true,
-      //   client,
-      //   serviceProvider,
-      //   serviceRequest,
-      //   notificationType: NotificationType.ACCOUNT_DEBIT,
-      // });
+
+      // accept proposal wallet action
+      await this.walletService.acceptProposal(
+        client,
+        serviceProvider,
+        proposal,
+      );
       proposal.proposal_accept_date = new Date();
       proposal.status = ServiceRequestStatus.PENDING;
       proposal.service_request = serviceRequest;
@@ -280,7 +254,8 @@ export class ProposalService {
         status: ServiceRequestStatus.PENDING,
       });
       await this.proposalRepo.save(proposal);
-      //send sample email to client
+
+      //send sample email to service provider
       await this.messagingService.sendEmail(
         EmailTemplate.acceptProposal({
           email: serviceProvider.email,
@@ -289,6 +264,7 @@ export class ProposalService {
           client,
         }),
       );
+
       //send Notification
       await this.notificationService.sendNotification({
         type: NotificationType.SERVICE_REQUEST_PROPOSAL,
@@ -314,6 +290,7 @@ export class ProposalService {
       throw new CatchErrorException(error);
     }
   }
+
   async completeProposal(
     currentUser: User,
     completeProposalDto: CompleteProposalDto,
@@ -361,11 +338,12 @@ export class ProposalService {
     proposal.job_complete_file_5 = job_complete_file_5;
     proposal.job_complete_file_6 = job_complete_file_6;
     serviceRequest.status = ServiceRequestStatus.COMPLETED;
-    // await this.serviceRequestRepository.save({
-    //   ...serviceRequest,
-    //   status: ServiceRequestStatus.COMPLETED,
-    // });
+    await this.serviceRequestService.updateServiceRequest({
+      ...serviceRequest,
+      status: ServiceRequestStatus.COMPLETED,
+    });
     await this.proposalRepo.save(proposal);
+
     //send Notification
     await this.notificationService.sendNotification({
       type: NotificationType.PROPOSAL_COMPLETE,
@@ -374,6 +352,7 @@ export class ProposalService {
       subject: 'Service Request has been completed by Service provider',
       owner: client,
     });
+
     //send sample email to client
     await this.messagingService.sendEmail(
       EmailTemplate.completeProposal({
@@ -384,17 +363,20 @@ export class ProposalService {
     );
     return new ResponseMessage('Service request have been marked as completed');
   }
+
   async startProposal(proposalId: string) {
     try {
       const proposal = await this.getProposalById(proposalId);
       const serviceProvider = proposal.service_provider;
       const serviceRequest = proposal.service_request;
       const client = proposal.service_request.created_by;
+
       // update status
       proposal.status = ServiceRequestStatus.IN_PROGRESS;
       serviceRequest.status = ServiceRequestStatus.IN_PROGRESS;
-      // await this.serviceRequestRepository.save(serviceRequest);
+      await this.serviceRequestService.updateServiceRequest(serviceRequest);
       await this.proposalRepo.save(proposal);
+
       // send Notification
       await this.notificationService.sendNotification({
         type: NotificationType.PROPOSAL_COMPLETE,
@@ -403,7 +385,8 @@ export class ProposalService {
         subject: 'Service Request has been started',
         owner: serviceProvider,
       });
-      //send sample email to client
+
+      //send email to service provider
       await this.messagingService.sendEmail(
         EmailTemplate.startProposal({
           serviceProvider: serviceProvider,

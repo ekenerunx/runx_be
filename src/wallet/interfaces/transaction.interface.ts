@@ -2,10 +2,12 @@ export enum TransactionType {
   'FUNDING' = 'FUNDING',
   'WITHDRAWAL' = 'WITHDRAWAL',
   'ESCROW' = 'ESCROW',
-  'HOLD' = 'HOLD',
 }
 
 export enum TransactionStatus {
   'SETTLED' = 'SETTLED',
   'NOT_SETTLED' = 'NOT_SETTLED',
+  'HOLD' = 'HOLD',
+  'PAID_SERVICE_PROVIDER' = 'PAID_SERVICE_PROVIDER',
+  'REVERSED_TO_CLIENT' = 'REVERSED_TO_CLIENT',
 }

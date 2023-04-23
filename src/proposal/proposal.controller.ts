@@ -60,7 +60,6 @@ export class ProposalController {
   ) {
     return await this.proposalService.acceptProposal(
       currentUser,
-
       acceptProposalDto,
     );
   }

@@ -144,7 +144,7 @@ export class WalletService {
   }
 
   async computeClientWallet(clientId: string): Promise<ClientWallet> {
-    const walletKey = `wallet:${clientId}`;
+    const walletKey = `wallet:client:${clientId}`;
     const cachedWallet = await this.redis.get(walletKey);
     if (cachedWallet) {
       return JSON.parse(cachedWallet);
@@ -152,55 +152,142 @@ export class WalletService {
     const transactions = await this.transactionRepo.find({
       where: { client_id: clientId },
     });
-    const { totalEscrow, totalFunding, totalWithdrawal } = transactions.reduce(
+    const {
+      totalEscrow,
+      totalFunding,
+      totalWithdrawn,
+      totalPendingFunding,
+      totalPendingWithdrawal,
+    } = transactions.reduce(
       (totals, trnx) => {
-        if (trnx.tnx_type === TransactionType.ESCROW) {
+        if (
+          trnx.tnx_type === TransactionType.ESCROW &&
+          trnx.status !== TransactionStatus.REVERSED_TO_CLIENT
+        ) {
           totals.totalEscrow += trnx.amount;
         }
-        if (trnx.tnx_type === TransactionType.WITHDRAWAL) {
-          totals.totalWithdrawal += trnx.amount;
+        if (
+          trnx.tnx_type === TransactionType.WITHDRAWAL &&
+          trnx.status === TransactionStatus.SETTLED
+        ) {
+          totals.totalWithdrawn += trnx.amount;
         }
-        if (trnx.tnx_type === TransactionType.FUNDING) {
+        if (
+          trnx.tnx_type === TransactionType.WITHDRAWAL &&
+          trnx.status === TransactionStatus.SETTLED
+        ) {
+          totals.totalWithdrawn += trnx.amount;
+        }
+        if (
+          trnx.tnx_type === TransactionType.WITHDRAWAL &&
+          trnx.status === TransactionStatus.NOT_SETTLED
+        ) {
+          totals.totalPendingWithdrawal += trnx.amount;
+        }
+        if (
+          trnx.tnx_type === TransactionType.FUNDING &&
+          trnx.status === TransactionStatus.SETTLED
+        ) {
           totals.totalFunding += trnx.amount;
+        }
+        if (
+          trnx.tnx_type === TransactionType.FUNDING &&
+          trnx.status === TransactionStatus.NOT_SETTLED
+        ) {
+          totals.totalPendingFunding += trnx.amount;
         }
         return totals;
       },
-      { totalEscrow: 0, totalFunding: 0, totalWithdrawal: 0 },
+      {
+        totalEscrow: 0,
+        totalFunding: 0,
+        totalWithdrawn: 0,
+        totalReversed: 0,
+        totalPendingFunding: 0,
+        totalPendingWithdrawal: 0,
+      },
     );
     const wallet = {
-      available_balance: totalFunding - (totalEscrow + totalWithdrawal),
+      available_balance:
+        totalFunding - (totalEscrow + totalWithdrawn + totalPendingWithdrawal),
       escrow: totalEscrow,
+      totalPendingFunding,
     };
     await this.redis.set(walletKey, JSON.stringify(wallet), 'EX', 30);
     return wallet;
   }
 
   async computeServiceProviderWallet(spId: string): Promise<SpWallet> {
+    const walletKey = `wallet:sp:${spId}`;
+    const cachedWallet = await this.redis.get(walletKey);
+    if (cachedWallet) {
+      return JSON.parse(cachedWallet);
+    }
     const transactions = await this.transactionRepo.find({
       where: { sp_id: spId },
     });
-    let totalEscrow,
-      totalFunding,
-      totalWithdrawal,
-      totalHold = 0;
-    for (let i; i < transactions.length; i++) {
+    let totalEscrow = 0;
+    let totalFunding = 0;
+    let totalPendingFunding = 0;
+    let totalWithdrawn = 0;
+    let totalHold = 0;
+    let totalCompleted = 0;
+    let totalPendingWithdrawal = 0;
+
+    for (let i = 0; i < transactions.length; i++) {
       const trnx = transactions[i];
-      if (trnx.tnx_type === TransactionType.ESCROW) {
+      if (
+        trnx.tnx_type === TransactionType.ESCROW &&
+        trnx.status === TransactionStatus.NOT_SETTLED
+      ) {
         totalEscrow += trnx.amount;
       }
-      if (trnx.tnx_type === TransactionType.HOLD) {
+      if (
+        trnx.tnx_type === TransactionType.ESCROW &&
+        trnx.status === TransactionStatus.HOLD
+      ) {
         totalHold += trnx.amount;
       }
-      if (trnx.tnx_type === TransactionType.FUNDING) {
+      if (
+        trnx.tnx_type === TransactionType.ESCROW &&
+        trnx.status === TransactionStatus.PAID_SERVICE_PROVIDER
+      ) {
+        totalCompleted += trnx.amount;
+      }
+      if (
+        trnx.tnx_type === TransactionType.FUNDING &&
+        trnx.status === TransactionStatus.SETTLED
+      ) {
         totalFunding += trnx.amount;
       }
+      if (
+        trnx.tnx_type === TransactionType.FUNDING &&
+        trnx.status === TransactionStatus.NOT_SETTLED
+      ) {
+        totalPendingFunding += trnx.amount;
+      }
+      if (
+        trnx.tnx_type === TransactionType.WITHDRAWAL &&
+        trnx.status === TransactionStatus.SETTLED
+      ) {
+        totalWithdrawn += trnx.amount;
+      }
+      if (
+        trnx.tnx_type === TransactionType.WITHDRAWAL &&
+        trnx.status === TransactionStatus.SETTLED
+      ) {
+        totalPendingWithdrawal += trnx.amount;
+      }
     }
-    const availableBalance = totalFunding + (totalWithdrawal - totalEscrow);
-    return {
+    const availableBalance =
+      totalCompleted + totalFunding - (totalWithdrawn + totalPendingWithdrawal);
+    const wallet = {
       available_balance: availableBalance,
       escrow: totalEscrow,
       hold: totalHold,
     };
+    await this.redis.set(walletKey, JSON.stringify(wallet), 'EX', 30);
+    return wallet;
   }
 
   async acceptProposal(client: User, sp: User, proposal: Proposal) {
@@ -215,12 +302,26 @@ export class WalletService {
       client_id: client.id,
       sp_id: sp.id,
       proposal_id: proposal.id,
-      amount: proposal.proposal_amount,
+      amount: proposal.proposal_amount + proposal.proposal_service_fee,
       tnx_type: TransactionType.ESCROW,
+      status: TransactionStatus.NOT_SETTLED,
     });
   }
 
-  async fundWallet(fundWalletDto: FundWalletDto): Promise<Transaction> {
+  async completeProposal(client: User, sp: User, proposal: Proposal) {
+    const trnx = await this.transactionRepo.findOne({
+      where: { client_id: client.id, sp_id: sp.id, proposal_id: proposal.id },
+    });
+    return await this.transactionRepo.save({
+      ...trnx,
+      status: TransactionStatus.HOLD,
+    });
+  }
+
+  async fundWallet(
+    currentUser: User,
+    fundWalletDto: FundWalletDto,
+  ): Promise<Transaction> {
     try {
       const trnx = await this.transactionRepo.findOne({
         where: { reference: fundWalletDto.reference },
@@ -233,6 +334,7 @@ export class WalletService {
       }
       return await this.createTransaction({
         ...fundWalletDto,
+        client_id: currentUser.id,
         tnx_type: TransactionType.FUNDING,
         status: TransactionStatus.NOT_SETTLED,
       });
