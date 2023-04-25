@@ -77,6 +77,9 @@ export class User extends BaseEntity {
   verified_at: Date;
 
   @Column({ nullable: true })
+  birth_date: Date;
+
+  @Column({ nullable: true })
   loc_state: string;
 
   @Column({ nullable: true })

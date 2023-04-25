@@ -4,8 +4,11 @@ import {
   IsOptional,
   IsArray,
   IsNumber,
+  IsNotEmpty,
+  IsDate,
 } from 'class-validator';
 import { Gender } from '../interfaces/user.interface';
+import { Transform } from 'class-transformer';
 
 export class PatchUserDto {
   @IsString()
@@ -87,4 +90,9 @@ export class PatchUserDto {
   @IsString()
   @IsOptional()
   photo_uri?: string;
+
+  @IsNotEmpty()
+  @Transform(({ value }) => new Date(value))
+  @IsDate()
+  birth_date: Date;
 }

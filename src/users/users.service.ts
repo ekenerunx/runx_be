@@ -22,7 +22,6 @@ import { jwtConstants } from 'src/auth/auth.constant';
 
 import {
   CatchErrorException,
-  DatabaseException,
   InValidOTPException,
   UserNotFoundException,
 } from 'src/exceptions';
@@ -343,7 +342,7 @@ export class UsersService {
         .andWhere('user.is_sp')
         .getOne();
     } catch (error) {
-      throw new DatabaseException(error);
+      throw new CatchErrorException(error);
     }
   }
 
@@ -387,7 +386,7 @@ export class UsersService {
         'Verifcation OTP has been sent to your phone number',
       );
     } catch (error) {
-      throw new DatabaseException(error);
+      throw new CatchErrorException(error);
     }
   }
 

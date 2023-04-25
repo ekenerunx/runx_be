@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ServiceType } from 'src/entities/service-type.entity';
 import { In, Repository } from 'typeorm';
 import { CreateServiceTypeDto } from './dto/create-service-type.dto';
-import { DatabaseException } from 'src/exceptions';
+import { CatchErrorException } from 'src/exceptions';
 
 @Injectable()
 export class ServiceTypesService {
@@ -41,7 +41,7 @@ export class ServiceTypesService {
       }
       return serviceTypes;
     } catch (error) {
-      throw new DatabaseException(error);
+      throw new CatchErrorException(error);
     }
   }
 

@@ -76,7 +76,7 @@ export class RatingService {
         proposal.service_request.created_by.id == currentUser.id
       ) {
         throw new HttpException(
-          'You are not the service provider',
+          'You are not the owner of this request',
           HttpStatus.BAD_REQUEST,
         );
       }
