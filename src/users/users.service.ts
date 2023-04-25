@@ -410,7 +410,6 @@ export class UsersService {
         .createQueryBuilder('user')
         .where('user.id = :id', { id: currentUser.id })
         .getOne();
-      user.is_phone_verified = true;
       user.phone_number = phone_number;
       await this.userRepository.save(user);
       await this.verificationCodeService.markAsUsed(otp.id);

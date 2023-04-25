@@ -1,6 +1,6 @@
 import { DatabaseExceptionFilter } from './filters/database.filter';
 import { SystemModule } from './system/system.module';
-import { Module } from '@nestjs/common';
+import { CacheModule, Module } from '@nestjs/common';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
@@ -61,6 +61,9 @@ import { DisputeModule } from './dispute/dispute.module';
         },
       }),
       inject: [ConfigService],
+    }),
+    CacheModule.register({
+      isGlobal: true,
     }),
     AuthModule,
     MessagingModule,

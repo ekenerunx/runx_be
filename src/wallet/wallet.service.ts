@@ -76,21 +76,31 @@ export class WalletService {
   ): Promise<Partial<BankAccount>> {
     try {
       const { account_number, bank_code } = addBankAccountDto;
-      const bankAccount = await this.bankAccountRepo.findOne({
-        where: { account_number },
-      });
-      if (bankAccount) {
-        throw {
-          message:
-            'Bank account already exists in our system. Please choose a different account or contact support for assistance',
-        };
+      const existingBankAccount = await this.bankAccountRepo
+        .createQueryBuilder('bk')
+        .leftJoinAndSelect('bk.user', 'user')
+        .where('bk.user.id = :id', { id: currentUser.id })
+        .where('bk.account_number = :id', {
+          id: account_number,
+        })
+        .getOne();
+      if (existingBankAccount) {
+        if (existingBankAccount.user.id === currentUser.id) {
+          throw new HttpException(
+            'Bank account already exist for your account',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+        throw new HttpException(
+          'Bank account already exists in our system. Please choose a different account or contact support for assistance',
+          HttpStatus.CONFLICT,
+        );
       }
       const serverBankAccount =
         await this.paymentProcessorService.verifyBankAccountNumber(
           account_number,
           bank_code,
         );
-
       const isMatchedNames = verifyNamesInString(
         serverBankAccount.data.account_name,
         currentUser.first_name,
@@ -99,19 +109,6 @@ export class WalletService {
       if (!isMatchedNames) {
         throw new HttpException(
           'Bank account name does not match your profile account',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-      const existingBankAccount = await this.bankAccountRepo
-        .createQueryBuilder('bk')
-        .where('bk.user.id = :id', { id: currentUser.id })
-        .where('bk.account_number = :id', {
-          id: account_number,
-        })
-        .getOne();
-      if (existingBankAccount) {
-        throw new HttpException(
-          'Bank account already exist for your account',
           HttpStatus.BAD_REQUEST,
         );
       }
