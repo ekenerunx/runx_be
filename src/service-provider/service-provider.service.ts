@@ -16,15 +16,24 @@ export class ServiceProviderService {
     private readonly proposalRepo: Repository<Proposal>,
   ) {}
   async getJobs(user: User, query: SPJobQueryDto): Promise<Pagination<any>> {
-    const { status, page, limit, start_date, end_date, date, service_type } =
-      query;
+    const {
+      status,
+      page,
+      limit,
+      start_date,
+      end_date,
+      date,
+      service_type,
+      order_by,
+    } = query;
     const qb = await this.proposalRepo
       .createQueryBuilder('p')
       .leftJoinAndSelect('p.service_request', 'sr')
       .leftJoinAndSelect('p.service_provider', 'sp')
       .leftJoinAndSelect('sr.service_types', 'st')
       .leftJoinAndSelect('sr.created_by', 'client')
-      .where('sp.id = :id', { id: user.id });
+      .where('sp.id = :id', { id: user.id })
+      .orderBy('p.created_at', order_by);
     if (status) {
       qb.andWhere('p.status = :status', { status });
     }

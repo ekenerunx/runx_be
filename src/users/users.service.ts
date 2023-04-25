@@ -261,9 +261,7 @@ export class UsersService {
         HttpStatus.CONFLICT,
       );
     }
-    const hashedTrnxPin = await Hash.encrypt(
-      createTransactionPinDto.pin.toString(),
-    );
+    const hashedTrnxPin = await Hash.encrypt(createTransactionPinDto.pin);
     await this.userRepository.save({ ...user, trnx_pin: hashedTrnxPin });
     const template = createTransactionPinMessage({
       email: user.email,
@@ -320,19 +318,30 @@ export class UsersService {
   }
 
   async validateTransactionPin(currentUser: User, transactionPin: string) {
-    const user = await this.userRepository.findOne({
-      where: { id: currentUser.id },
-    });
-    const isMatch = await Hash.compare(transactionPin, user.trnx_pin);
-    if (isMatch) {
-      return true;
-    } else {
-      throw new HttpException(
-        'Incorrect transaction pin',
-        HttpStatus.UNAUTHORIZED,
-      );
+    try {
+      const user = await this.userRepository.findOne({
+        where: { id: currentUser.id },
+      });
+      if (!user.trnx_pin) {
+        throw new HttpException(
+          'No Transaction pin on your account, set one',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+      const isMatch = await Hash.compare(transactionPin, user.trnx_pin);
+      if (isMatch) {
+        return true;
+      } else {
+        throw new HttpException(
+          'Incorrect transaction pin',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+    } catch (error) {
+      throw new CatchErrorException(error);
     }
   }
+
   async getServiceProvider(id: string) {
     try {
       return await this.userRepository

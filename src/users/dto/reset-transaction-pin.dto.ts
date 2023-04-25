@@ -1,15 +1,14 @@
 import { toNumber } from 'src/common/utils';
 import { Transform } from 'class-transformer';
-import { IsNumber, MaxLength } from 'class-validator';
+import { IsNumber, IsString, MaxLength } from 'class-validator';
 
 export class ResetTransactionPinDto {
-  @Transform(({ value }) => toNumber(value))
-  @IsNumber()
+  @IsString()
+
   // @MaxLength(4, { message: 'Pin must be exactly 4 digits' })
-  pin: number;
+  pin: string;
 
   // @MaxLength(4, { message: 'Code must be exactly 4 digits' })
-  @Transform(({ value }) => toNumber(value))
-  @IsNumber()
+  @IsString()
   code: number;
 }

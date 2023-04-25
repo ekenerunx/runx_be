@@ -11,6 +11,7 @@ import { PROPOSAL_QUEUE } from './proposal.constant';
 import { ProposalConsumer } from './proposal.consumer';
 import { SystemModule } from 'src/system/system.module';
 import { ServiceRequestModule } from 'src/service-request/service-request.module';
+import { UsersModule } from 'src/users/users.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ServiceRequestModule } from 'src/service-request/service-request.module
     BullModule.registerQueue({ name: PROPOSAL_QUEUE }),
     SystemModule,
     ServiceRequestModule,
+    UsersModule,
   ],
   controllers: [ProposalController],
   providers: [ProposalService, ProposalConsumer],

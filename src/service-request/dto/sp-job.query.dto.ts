@@ -9,6 +9,7 @@ import {
   IsUUID,
 } from 'class-validator';
 import { toNumber } from 'src/common/utils';
+import { OrderBy } from 'src/common/interface';
 
 export class SPJobQueryDto {
   @Transform(({ value }) => ServiceRequestStatus[value])
@@ -44,4 +45,8 @@ export class SPJobQueryDto {
   @IsOptional()
   @IsUUID()
   service_type: string;
+
+  @IsEnum(OrderBy)
+  @IsOptional()
+  order_by: OrderBy = OrderBy.DESC;
 }

@@ -72,6 +72,7 @@ export class NotificationService {
         .leftJoinAndSelect('not.service_provider', 'sp')
         .leftJoinAndSelect('not.owner', 'owner')
         .where('owner.id = :id', { id: owner.id })
+        .orderBy('not.created_at', 'DESC')
         .select(NOTIFICATION_LIST_FIELDS);
 
       return await paginate<Partial<Notification>>(queryBuilder, {

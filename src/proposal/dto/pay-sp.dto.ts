@@ -1,4 +1,4 @@
-import { IsUUID } from 'class-validator';
+import { IsString, IsUUID } from 'class-validator';
 
 export class PayServiceProviderDto {
   @IsUUID()
@@ -6,4 +6,7 @@ export class PayServiceProviderDto {
 
   @IsUUID()
   service_request_id: string;
+
+  @IsString()
+  pin: string;
 }

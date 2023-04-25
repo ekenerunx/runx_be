@@ -1,4 +1,3 @@
-import { ServiceRequest } from 'src/entities/service-request.entity';
 import { InitProposalDto } from './dto/init-proposal.dto';
 import {
   HttpException,
@@ -30,6 +29,7 @@ import { SendProposalDto } from './dto/send-proposal.dto';
 import { SystemService } from 'src/system/system.service';
 import { ServiceRequestService } from 'src/service-request/service-request.service';
 import { PayServiceProviderDto } from './dto/pay-sp.dto';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class ProposalService {
@@ -43,6 +43,7 @@ export class ProposalService {
     private proposalQueue: Queue<StartProposalJob>,
     private readonly systemService: SystemService,
     private readonly serviceRequestService: ServiceRequestService,
+    private readonly userService: UsersService,
   ) {}
 
   async getProposalBySRSP(serviceRequestId: string, serviceProviderId: string) {
@@ -391,11 +392,13 @@ export class ProposalService {
     currentUser: User,
     payServiceProviderDto: PayServiceProviderDto,
   ) {
-    const { service_provider_id, service_request_id } = payServiceProviderDto;
+    const { service_provider_id, service_request_id, pin } =
+      payServiceProviderDto;
     const proposal = await this.getProposalBySRSP(
       service_request_id,
       service_provider_id,
     );
+
     const serviceProvider = proposal.service_provider;
     const serviceRequest = proposal.service_request;
     const client = proposal.service_request.created_by;
@@ -426,6 +429,7 @@ export class ProposalService {
         HttpStatus.BAD_REQUEST,
       );
     }
+    await this.userService.validateTransactionPin(currentUser, pin);
     await this.walletService.payServiceProvider(
       client,
       serviceProvider,
