@@ -29,6 +29,9 @@ import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { Proposal } from 'src/entities/proposal.entity';
 import { FundWalletDto } from './dto/fund-wallet.dto';
 import * as Redis from 'ioredis';
+import { VerifyBankAccountDto } from './dto/verify-bank-account.dto';
+import { VerifyBankAccount } from 'src/payment-processor/interface/paystack.interface';
+import { MakeDefaultBankAccountDto } from './dto/make-default-bank-account.dto';
 
 @Injectable()
 export class WalletService {
@@ -59,8 +62,12 @@ export class WalletService {
   }
 
   async createTransaction(__transaction: Partial<Transaction>) {
-    const transaction = await this.transactionRepo.create(__transaction);
-    return await this.transactionRepo.save(transaction);
+    try {
+      const transaction = await this.transactionRepo.create(__transaction);
+      return await this.transactionRepo.save(transaction);
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
   }
 
   async addBankAccount(
@@ -69,6 +76,15 @@ export class WalletService {
   ): Promise<Partial<BankAccount>> {
     try {
       const { account_number, bank_code } = addBankAccountDto;
+      const bankAccount = await this.bankAccountRepo.findOne({
+        where: { account_number },
+      });
+      if (bankAccount) {
+        throw {
+          message:
+            'Bank account already exists in our system. Please choose a different account or contact support for assistance',
+        };
+      }
       const serverBankAccount =
         await this.paymentProcessorService.verifyBankAccountNumber(
           account_number,
@@ -106,6 +122,37 @@ export class WalletService {
       });
       const { user, ...rest } = await this.bankAccountRepo.save(newBankAccount);
       return rest;
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
+  }
+
+  async verifyBankAccount(
+    verifyBankAccountDto: VerifyBankAccountDto,
+  ): Promise<Partial<VerifyBankAccount['data']>> {
+    try {
+      const { account_number, bank_code } = verifyBankAccountDto;
+      return await this.paymentProcessorService
+        .verifyBankAccountNumber(account_number, bank_code)
+        .then((res) => res.data);
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
+  }
+
+  async makeDefaultBankAccount(
+    currentUser: User,
+    makeDefaultBankAccountDto: MakeDefaultBankAccountDto,
+  ): Promise<BankAccount[]> {
+    try {
+      const { id, is_default } = makeDefaultBankAccountDto;
+      const bankAccounts = await this.bankAccountRepo.find({
+        where: { user: { id: currentUser.id } },
+      });
+      const updatedBankAccounts = bankAccounts.map((b) =>
+        b.id == id ? { ...b, is_default } : { ...b, is_default: false },
+      );
+      return this.bankAccountRepo.save(updatedBankAccounts);
     } catch (error) {
       throw new CatchErrorException(error);
     }

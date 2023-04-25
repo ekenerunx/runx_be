@@ -48,11 +48,15 @@ export function verifyNamesInString(
   lastName: string,
 ): boolean {
   if (nameString) {
-    const regex = new RegExp(
-      `\\b${firstName}\\b.*\\b${lastName}\\b|\\b${lastName}\\b.*\\b${firstName}\\b`,
-      'i',
-    );
-    return regex.test(nameString?.toLowerCase());
+    const nameStringArr = nameString
+      .toLowerCase()
+      .split(' ')
+      .map((i) => i.trim());
+    if (
+      nameStringArr.includes(firstName.toLowerCase()) &&
+      nameStringArr.includes(lastName.toLowerCase())
+    )
+      return true;
   }
   return false;
 }

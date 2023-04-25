@@ -54,6 +54,7 @@ export class ServiceProviderService {
         start_add: p.service_request.start_add,
         start_date: p.service_request.start_date,
         status: p.status,
+        created_at: p.created_at,
         service_request_types: p.service_request.service_types.map((i) => ({
           name: i.name,
           id: i.id,

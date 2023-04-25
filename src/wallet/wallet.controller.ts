@@ -22,6 +22,10 @@ import { PaginationResponse } from 'src/common/interface';
 import { Transaction } from 'src/entities/transaction.entity';
 import { ClientWallet, SpWallet } from './interfaces/wallet.interface';
 import { FundWalletDto } from './dto/fund-wallet.dto';
+import { VerifyBankAccountDto } from './dto/verify-bank-account.dto';
+import { VerifyBankAccount } from 'src/payment-processor/interface/paystack.interface';
+import { BankAccount } from 'src/entities/bank-account.entity';
+import { MakeDefaultBankAccountDto } from './dto/make-default-bank-account.dto';
 
 @Controller('wallet')
 export class WalletController {
@@ -89,6 +93,28 @@ export class WalletController {
   @Roles(UserRoles.SERVICE_PROVIDER)
   async listBankAccount(@CurrentUser() currentUser: User) {
     return await this.walletService.listBankAccount(currentUser);
+  }
+
+  @Post('bank-account/verify')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.SERVICE_PROVIDER)
+  async verifyBankAccount(
+    @Body() verifyBankAccountDto: VerifyBankAccountDto,
+  ): Promise<Partial<VerifyBankAccount['data']>> {
+    return await this.walletService.verifyBankAccount(verifyBankAccountDto);
+  }
+
+  @Post('bank-account/make-default')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.SERVICE_PROVIDER)
+  async makeDefaultBankAccount(
+    @Body() makeDefaultBankAccountDto: MakeDefaultBankAccountDto,
+    @CurrentUser() currentUser: User,
+  ): Promise<BankAccount[]> {
+    return await this.walletService.makeDefaultBankAccount(
+      currentUser,
+      makeDefaultBankAccountDto,
+    );
   }
 
   @Delete('bank-account/id/:bankAccountId')

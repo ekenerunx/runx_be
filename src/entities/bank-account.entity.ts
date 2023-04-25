@@ -20,4 +20,8 @@ export class BankAccount {
 
   @ManyToOne(() => User, (user) => user.bank_accounts)
   user: User;
+
+
+  @Column({default: false})
+  is_default: boolean
 }
