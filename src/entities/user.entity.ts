@@ -11,6 +11,8 @@ import {
   OneToMany,
   AfterLoad,
   BaseEntity,
+  BeforeInsert,
+  BeforeUpdate,
 } from 'typeorm';
 import { Rating } from './rating.entity';
 import { BankAccount } from './bank-account.entity';
@@ -131,7 +133,7 @@ export class User extends BaseEntity {
   sp_average_rating: number;
 
   @Column({ nullable: true })
-  trnx_pin: string;
+  public trnx_pin: string;
 
   @Column({ default: false })
   has_trnx_pin: boolean;
@@ -178,8 +180,10 @@ export class User extends BaseEntity {
     // }
   }
 
-  @AfterLoad()
+  @BeforeUpdate()
   checkHasCreatedTransactionPin() {
-    this.has_trnx_pin = this.trnx_pin ? true : false;
+    if (this.trnx_pin) {
+      this.has_trnx_pin = true;
+    }
   }
 }
