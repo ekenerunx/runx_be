@@ -44,6 +44,8 @@ import { RoleGuard } from 'src/guards/role.guard';
 import { PaginationResponse } from 'src/common/interface';
 import { ToggleVisibilityDto } from './dto/toggle-visibility.dto';
 import { ResponseMessage } from 'src/common/interface/success-message.interface';
+import { ChangeTransactionPinDto } from './dto/change-transaction-pin.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 @Controller('users')
 export class UsersController {
   constructor(
@@ -203,13 +205,36 @@ export class UsersController {
   @Post('reset-trnx-pin')
   @UseGuards(JwtAuthGuard)
   async resetTransactionPin(
-    @Request() req,
     @CurrentUser() user: User,
     @Body() resetTransactionPinDto: ResetTransactionPinDto,
   ) {
     return await this.usersService.resetTransactionPin(
       user,
       resetTransactionPinDto,
+    );
+  }
+
+  @Post('change-trnx-pin')
+  @UseGuards(JwtAuthGuard)
+  async changeTransactionPin(
+    @CurrentUser() currentUser: User,
+    @Body() changeTransactionPinDto: ChangeTransactionPinDto,
+  ) {
+    return await this.usersService.changeTransactionPin(
+      currentUser,
+      changeTransactionPinDto,
+    );
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  async changePassword(
+    @CurrentUser() currentUser: User,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return await this.usersService.changePassword(
+      currentUser,
+      changePasswordDto,
     );
   }
 

@@ -37,6 +37,9 @@ import { paginate } from 'nestjs-typeorm-paginate';
 import { ResponseMessage } from 'src/common/interface/success-message.interface';
 import { ToggleVisibilityDto } from './dto/toggle-visibility.dto';
 import { generateAlphaNumeric } from 'src/common/utils';
+import { ChangeTransactionPinDto } from './dto/change-transaction-pin.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { EmailTemplate } from 'src/common/email-template';
 
 @Injectable()
 export class UsersService {
@@ -328,7 +331,10 @@ export class UsersService {
           HttpStatus.UNAUTHORIZED,
         );
       }
-      const isMatch = await Hash.compare(transactionPin, user.trnx_pin);
+      const isMatch = await Hash.compare(
+        transactionPin.toString(),
+        user.trnx_pin,
+      );
       if (isMatch) {
         return true;
       } else {
@@ -337,6 +343,69 @@ export class UsersService {
           HttpStatus.UNAUTHORIZED,
         );
       }
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
+  }
+
+  async changeTransactionPin(
+    currentUser: User,
+    changeTransactionPinDto: ChangeTransactionPinDto,
+  ) {
+    try {
+      const { old_pin, new_pin } = changeTransactionPinDto;
+      const user = await this.userRepository.findOne({
+        where: { id: currentUser.id },
+      });
+      if (!user.trnx_pin) {
+        throw new HttpException(
+          'No Transaction pin on your account, set one',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+      const isMatch = await Hash.compare(old_pin, user.trnx_pin);
+      if (!isMatch) {
+        throw new HttpException(
+          'Incorrect transaction pin',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+      const hashedTrnxPin = await Hash.encrypt(new_pin.toString());
+      await this.userRepository.save({ ...user, trnx_pin: hashedTrnxPin });
+      await this.messagingService.sendEmail(
+        EmailTemplate.transactionPinChanged({
+          email: currentUser.email,
+          firstName: currentUser.first_name,
+        }),
+      );
+      return new ResponseMessage('Transaction Pin successfully Changed');
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
+  }
+
+  async changePassword(
+    currentUser: User,
+    changePasswordDto: ChangePasswordDto,
+  ) {
+    try {
+      const { old_password, new_password } = changePasswordDto;
+      const user = await this.userRepository.findOne({
+        where: { id: currentUser.id },
+      });
+      const isMatch = await Hash.compare(old_password, user.password);
+      if (!isMatch) {
+        throw new HttpException('Incorrect password', HttpStatus.BAD_REQUEST);
+      }
+      const hashedPassword = await Hash.encrypt(new_password.toString());
+      await this.userRepository.save({ ...user, password: hashedPassword });
+      await this.messagingService.sendEmail(
+        EmailTemplate.passwordChanged({
+          email: currentUser.email,
+          firstName: currentUser.first_name,
+        }),
+      );
+      return new ResponseMessage('Password successfully Changed');
     } catch (error) {
       throw new CatchErrorException(error);
     }
