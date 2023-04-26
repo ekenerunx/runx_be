@@ -133,6 +133,9 @@ export class User extends BaseEntity {
   @Column({ nullable: true })
   trnx_pin: string;
 
+  @Column({ default: false })
+  has_trnx_pin: boolean;
+
   @Column({ nullable: true })
   unique_id: string;
 
@@ -173,5 +176,10 @@ export class User extends BaseEntity {
     //TODO:     // if (this.sp_average_rating !== averageRating) {
     //   this.markAsDirty('sp_average_rating');
     // }
+  }
+
+  @AfterLoad()
+  checkHasCreatedTransactionPin() {
+    this.has_trnx_pin = this.trnx_pin ? true : false;
   }
 }

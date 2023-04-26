@@ -1,3 +1,6 @@
+import { Pagination } from 'nestjs-typeorm-paginate';
+import { PaginationResponse } from '../interface';
+
 interface ToNumberOptions {
   default?: number;
   min?: number;
@@ -74,3 +77,41 @@ export const generateAlphaNumeric = (len = 6) => {
   }
   return code;
 };
+interface PaginationResult<T> {
+  data: T[];
+  meta: {
+    itemCount: number;
+    totalItems: number;
+    itemsPerPage: number;
+    totalPages: number;
+    currentPage: number;
+  };
+}
+
+export async function paginateArray<T>(
+  array: T[],
+  limit: number,
+  page: number,
+): PaginationResponse<T> {
+  const start = (page - 1) * limit;
+  const end = start + limit;
+
+  const paginatedArray = array.slice(start, end);
+
+  const itemCount = paginatedArray.length;
+  const totalItems = array.length;
+  const itemsPerPage = limit;
+  const totalPages = Math.ceil(totalItems / limit);
+  const currentPage = page;
+
+  return {
+    items: paginatedArray,
+    meta: {
+      itemCount,
+      totalItems,
+      itemsPerPage,
+      totalPages,
+      currentPage,
+    },
+  };
+}

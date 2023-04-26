@@ -8,7 +8,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { EmailTemplate } from 'src/common/email-template';
 import { ResponseMessage } from 'src/common/interface/success-message.interface';
-import { generateAlphaNumeric, normalizeEnum } from 'src/common/utils';
+import {
+  generateAlphaNumeric,
+  normalizeEnum,
+  paginateArray,
+} from 'src/common/utils';
 import { Proposal } from 'src/entities/proposal.entity';
 import { User } from 'src/entities/user.entity';
 import { CatchErrorException } from 'src/exceptions';
@@ -23,13 +27,19 @@ import { Repository } from 'typeorm';
 import { InjectQueue } from '@nestjs/bull';
 import { PROPOSAL_QUEUE, START_PROPOSAL_PROCESS } from './proposal.constant';
 import { Queue } from 'bull';
-import { StartProposalJob } from './proposal.interface';
+import {
+  ClientInvoice,
+  InvoiceStatus,
+  StartProposalJob,
+} from './proposal.interface';
 import { AcceptProposalDto } from './dto/accept-proposal.dto';
 import { SendProposalDto } from './dto/send-proposal.dto';
 import { SystemService } from 'src/system/system.service';
 import { ServiceRequestService } from 'src/service-request/service-request.service';
 import { PayServiceProviderDto } from './dto/pay-sp.dto';
 import { UsersService } from 'src/users/users.service';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { PaginationResponse } from 'src/common/interface';
 
 @Injectable()
 export class ProposalService {
@@ -492,6 +502,46 @@ export class ProposalService {
         }),
       );
       return;
+    } catch (error) {
+      throw new CatchErrorException(error);
+    }
+  }
+
+  async clientProposalInvoices(
+    currentUser: User,
+    paginationQueryDto: PaginationQueryDto,
+  ): Promise<PaginationResponse<ClientInvoice>> {
+    try {
+      const { limit, page } = paginationQueryDto;
+      const proposals = await this.proposalRepo
+        .createQueryBuilder('p')
+        .leftJoinAndSelect('p.service_request', 'sr')
+        .leftJoinAndSelect('sr.created_by', 'client')
+        .leftJoinAndSelect('p.service_provider', 'sp')
+        .where('client.id = :id', { id: currentUser.id })
+        .getMany();
+      let invoices: ClientInvoice[] = [];
+      for (let i = 0; i < proposals.length; i++) {
+        const p = proposals[i];
+        if (p.invoice_id) {
+          invoices.push({
+            invoice_id: p.invoice_id,
+            amount: p.proposal_amount,
+            service_provider: {
+              first_name: p.service_provider.first_name,
+              last_name: p.service_provider.last_name,
+              id: p.service_provider.id,
+            },
+            status: p.amount_paid_date
+              ? InvoiceStatus.PAID
+              : InvoiceStatus.UNPAID,
+            date_paid: p.amount_paid_date,
+            created_at: p.created_at,
+            service_address: p.service_request.start_add,
+          });
+        }
+      }
+      return await paginateArray<ClientInvoice>(invoices, limit, page);
     } catch (error) {
       throw new CatchErrorException(error);
     }

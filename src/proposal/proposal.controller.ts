@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   Param,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ProposalService } from './proposal.service';
@@ -18,6 +20,9 @@ import { AcceptProposalDto } from './dto/accept-proposal.dto';
 import { SendProposalDto } from './dto/send-proposal.dto';
 import { InitProposalDto } from './dto/init-proposal.dto';
 import { PayServiceProviderDto } from './dto/pay-sp.dto';
+import { ClientInvoice } from './proposal.interface';
+import { PaginationResponse } from 'src/common/interface';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @Controller('proposal')
 export class ProposalController {
@@ -98,5 +103,19 @@ export class ProposalController {
   @HttpCode(200)
   async startProposal(@Param('proposalId') proposalId: string) {
     return await this.proposalService.startProposal(proposalId);
+  }
+
+  @Get('client-invoices')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRoles.CLIENT)
+  @HttpCode(200)
+  async clientProposalInvoices(
+    @Query() paginationQueryDto: PaginationQueryDto,
+    @CurrentUser() currentUser: User,
+  ): Promise<PaginationResponse<ClientInvoice>> {
+    return await this.proposalService.clientProposalInvoices(
+      currentUser,
+      paginationQueryDto,
+    );
   }
 }

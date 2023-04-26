@@ -7,6 +7,7 @@ export const USER_FIELDS_TO_RETURN = [
   'user.is_admin',
   'user.birth_date',
   'user.is_client',
+  'user.has_trnx_pin',
   'user.is_sp',
   'user.gender',
   'user.phone_number',
